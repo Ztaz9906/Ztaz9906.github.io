@@ -1,8 +1,8 @@
-import { ArrowDown, Download, Github, Linkedin, Mail } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { HeroVisual } from "@/components/hero-visual"
-import { Reveal } from "@/components/reveal"
-import { SOCIALS } from "@/lib/data"
+import { ArrowDown, Download, Github, Linkedin, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HeroVisual } from "@/components/hero-visual";
+import { Reveal } from "@/components/reveal";
+import { SOCIALS } from "@/lib/data";
 
 export function Hero() {
   return (
@@ -28,7 +28,7 @@ export function Hero() {
 
           <Reveal delay={140}>
             <p className="mt-5 max-w-xl text-pretty font-mono text-sm text-muted-foreground sm:text-base">
-              DDD • CQRS • Event-Driven — Next.js • TypeScript • Python
+              DDD • CQRS • Event-Driven • Next.js • TypeScript • Python
             </p>
           </Reveal>
 
@@ -97,5 +97,5 @@ export function Hero() {
         <ArrowDown className="size-4 animate-bounce" />
       </a>
     </section>
-  )
+  );
 }
