@@ -33,17 +33,33 @@ export function Experience() {
               <Reveal delay={i * 80}>
                 <Card className="group p-6 transition-all duration-300 hover:border-blue/50 hover:shadow-[0_0_30px_-12px_rgba(59,130,246,0.5)]">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-lg font-semibold">{item.company}</h3>
+                    <h3 className="text-balance text-lg font-semibold">
+                      {item.company}
+                    </h3>
                     <span className="font-mono text-xs text-muted-foreground">
                       {item.period}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm font-medium text-blue">
-                    {item.role}
+                  <p className="mt-1 font-mono text-xs text-blue">
+                    {item.location}
                   </p>
-                  <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground">
+                  <p className="mt-3 text-pretty text-sm leading-relaxed text-foreground/90">
                     {item.summary}
                   </p>
+                  <ul className="mt-3 space-y-2">
+                    {item.bullets.map((bullet) => (
+                      <li
+                        key={bullet}
+                        className="flex gap-2.5 text-pretty text-sm leading-relaxed text-muted-foreground"
+                      >
+                        <span
+                          aria-hidden
+                          className="mt-2 size-1.5 shrink-0 rounded-full bg-gradient-brand"
+                        />
+                        {bullet}
+                      </li>
+                    ))}
+                  </ul>
                   <div className="mt-4 flex flex-wrap gap-1.5">
                     {item.tags.map((tag) => (
                       <Badge key={tag}>{tag}</Badge>
