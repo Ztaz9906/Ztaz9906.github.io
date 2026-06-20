@@ -202,31 +202,45 @@ export const PROJECTS = [
 export const SKILLS = [
   {
     category: "Languages",
-    items: ["TypeScript", "JavaScript", "Python", "SQL"],
+    items: ["JavaScript", "TypeScript", "Python"],
   },
   {
     category: "Frontend",
-    items: ["React", "Next.js", "Tailwind CSS", "shadcn/ui"],
+    items: [
+      "React",
+      "Next.js",
+      "Astro",
+      "Redux Toolkit",
+      "Tailwind CSS",
+      "shadcn/ui",
+      "Radix UI",
+    ],
   },
   {
     category: "Architecture",
-    items: ["DDD", "CQRS", "Event-Driven", "SOLID", "Clean Architecture"],
+    items: ["SOLID", "DDD", "Clean Architecture", "Event-Driven (SSE)", "CQRS"],
   },
   {
     category: "Backend",
-    items: ["Node.js", "Django", "REST", "GraphQL"],
+    items: ["Node.js", "Django", "Supabase", "Firebase", "GraphQL", "REST APIs"],
   },
   {
     category: "Services & Payments",
-    items: ["Stripe", "Ably", "SSE", "Mapbox"],
+    items: [
+      "Stripe",
+      "Supabase Auth",
+      "Google OAuth",
+      "Ably Realtime",
+      "Mapbox",
+    ],
   },
   {
     category: "Databases",
-    items: ["PostgreSQL", "Supabase", "Redis"],
+    items: ["PostgreSQL", "Prisma", "TypeORM", "Drizzle ORM"],
   },
   {
     category: "Tools",
-    items: ["Git", "Docker", "Vercel", "Vitest"],
+    items: ["Git", "GitHub", "CI/CD", "Jest", "Docker"],
   },
 ]
 
