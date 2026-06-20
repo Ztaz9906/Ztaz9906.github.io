@@ -24,6 +24,8 @@
   --color-blue: #3b82f6;
   --color-purple: #8b5cf6;
   --color-cyan: #06b6d4;
+  --color-destructive: #fb7185;
+  --color-destructive-foreground: #ffffff;
 
   --radius-lg: 0.75rem;
   --radius-md: 0.625rem;

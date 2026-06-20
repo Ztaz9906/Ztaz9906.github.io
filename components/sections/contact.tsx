@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Download, Github, Linkedin, Mail, Send } from "lucide-react"
+import { CheckCircle2, Download, Github, Linkedin, Mail, Send } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,20 +17,65 @@ const CONTACT_LINKS = [
   { icon: Download, label: "Resume", value: "Download CV", href: SOCIALS.resume },
 ]
 
+type Fields = "name" | "email" | "message"
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function validate(values: Record<Fields, string>) {
+  const errors: Partial<Record<Fields, string>> = {}
+  if (!values.name.trim()) errors.name = "Please enter your name."
+  if (!values.email.trim()) errors.email = "Please enter your email."
+  else if (!EMAIL_RE.test(values.email.trim()))
+    errors.email = "Please enter a valid email address."
+  if (!values.message.trim()) errors.message = "Please enter a message."
+  else if (values.message.trim().length < 10)
+    errors.message = "Message should be at least 10 characters."
+  return errors
+}
+
 export function Contact() {
+  const [values, setValues] = React.useState<Record<Fields, string>>({
+    name: "",
+    email: "",
+    message: "",
+  })
+  const [errors, setErrors] = React.useState<Partial<Record<Fields, string>>>(
+    {},
+  )
+  const [touched, setTouched] = React.useState<Partial<Record<Fields, boolean>>>(
+    {},
+  )
   const [sent, setSent] = React.useState(false)
+
+  const update = (field: Fields, value: string) => {
+    setValues((prev) => ({ ...prev, [field]: value }))
+    if (touched[field]) {
+      setErrors(validate({ ...values, [field]: value }))
+    }
+  }
+
+  const onBlur = (field: Fields) => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+    setErrors(validate(values))
+  }
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const nextErrors = validate(values)
+    setErrors(nextErrors)
+    setTouched({ name: true, email: true, message: true })
+    if (Object.keys(nextErrors).length > 0) return
     setSent(true)
+    setValues({ name: "", email: "", message: "" })
+    setTouched({})
   }
 
   return (
     <section id="contact" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="// 05"
-        title="Let's build something together."
-        description="Have a project, role, or idea in mind? My inbox is always open."
+        title="Let's build something together"
+        description="Open to new opportunities, freelance projects, and interesting problems."
       />
 
       <div className="mt-12 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
@@ -61,13 +106,32 @@ export function Contact() {
 
         <Reveal delay={100}>
           <Card className="p-6 sm:p-8">
-            <form onSubmit={onSubmit} className="flex flex-col gap-4">
+            <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <label htmlFor="name" className="text-sm font-medium">
                     Name
                   </label>
-                  <Input id="name" name="name" placeholder="Jane Doe" required />
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="Jane Doe"
+                    value={values.name}
+                    onChange={(e) => update("name", e.target.value)}
+                    onBlur={() => onBlur("name")}
+                    aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? "name-error" : undefined}
+                    className={
+                      errors.name
+                        ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40"
+                        : undefined
+                    }
+                  />
+                  {errors.name && (
+                    <p id="name-error" className="text-xs text-destructive">
+                      {errors.name}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="email" className="text-sm font-medium">
@@ -78,8 +142,22 @@ export function Contact() {
                     name="email"
                     type="email"
                     placeholder="jane@company.com"
-                    required
+                    value={values.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    onBlur={() => onBlur("email")}
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? "email-error" : undefined}
+                    className={
+                      errors.email
+                        ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40"
+                        : undefined
+                    }
                   />
+                  {errors.email && (
+                    <p id="email-error" className="text-xs text-destructive">
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -90,17 +168,43 @@ export function Contact() {
                   id="message"
                   name="message"
                   placeholder="Tell me about your project..."
-                  required
+                  value={values.message}
+                  onChange={(e) => update("message", e.target.value)}
+                  onBlur={() => onBlur("message")}
+                  aria-invalid={!!errors.message}
+                  aria-describedby={
+                    errors.message ? "message-error" : undefined
+                  }
+                  className={
+                    errors.message
+                      ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40"
+                      : undefined
+                  }
                 />
+                {errors.message && (
+                  <p id="message-error" className="text-xs text-destructive">
+                    {errors.message}
+                  </p>
+                )}
               </div>
-              <Button type="submit" size="lg" className="mt-1">
+              <Button
+                type="submit"
+                variant="gradient"
+                size="lg"
+                className="mt-1"
+              >
                 <Send className="size-4" />
-                {sent ? "Message sent" : "Send message"}
+                Send Message
               </Button>
               {sent && (
-                <p className="text-sm text-cyan" role="status">
-                  Thanks — this form is a UI demo for now. I'll wire it up soon.
-                </p>
+                <div
+                  role="status"
+                  className="flex items-center gap-2 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm text-cyan"
+                >
+                  <CheckCircle2 className="size-4 shrink-0" />
+                  Thanks! Your message looks good — backend wiring is coming
+                  soon.
+                </div>
               )}
             </form>
           </Card>
