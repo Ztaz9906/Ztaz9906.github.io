@@ -1,18 +1,396 @@
 ---
-title: "CQRS in Next.js: Separating Reads from Writes"
+title: "CQRS in Next.js with mediatr-ts"
 date: "2025-04-20"
-excerpt: "CQRS — Command Query Responsibility Segregation — sounds academic until you hit a system where reads and writes have completely different performance and consistency requirements. Here's how I applied it inside Next.js App Router without over-engineering a solo project."
-tags: ["CQRS", "Next.js", "Architecture"]
-coverImage: ""
+excerpt: "Practical CQRS in Next.js with Server Actions, Route Handlers, and mediatr-ts, showing how commands, queries, handlers, and read models fit together in a real TypeScript app."
+tags:
+  ["cqrs", "nextjs", "mediatr-ts", "typescript", "event-driven-architecture"]
+coverImage: "/blog/cqrs-in-nextjs/cover.jpg"
 ---
 
-{/* OUTLINE — full article coming soon
-  1. The core idea: commands mutate state, queries read state — never both
-  2. Why it matters in Next.js (Server Actions as commands, RSC as queries)
-  3. Folder structure for CQRS in a Next.js 15 project
-  4. Concrete example: CreateReservationCommand vs GetReservationsQuery
-  5. Avoiding over-engineering: when plain MVC is enough
-  6. Combining with DDD: Aggregates emit Domain Events, queries project read models
-*/}
+# CQRS in Next.js with mediatr-ts
 
-CQRS — Command Query Responsibility Segregation — sounds academic until you hit a system where reads and writes have completely different performance and consistency requirements. Here's how I applied it inside Next.js App Router without over-engineering a solo project.
+I implement CQRS in Next.js when the system already has two distinct needs: writing with strict business rules and reading through optimized views. In that separation, a Server Action should not touch repositories directly; its responsibility is to build a command or query and send it through mediatr-ts. The corresponding handler receives the repository dependency and executes the business logic.
+
+## The Real Change
+
+CQRS is not about creating more folders or duplicating your backend. In practice, what changes is that intention and execution stop living inside the same function.
+
+A command expresses what should happen.
+
+A handler decides how it happens.
+
+A query returns exactly the shape of data the UI needs.
+
+This separation fits naturally into Next.js because the App Router already distinguishes between Server Actions for mutations and Server Components or Route Handlers for reads.
+
+Instead of writing code that looks like this:
+
+- Open form
+- Validate input
+- Query repository
+- Save changes
+- Revalidate cache
+- Return data
+
+Everything becomes:
+
+- The Server Action creates a command
+- mediatr-ts dispatches it
+- The handler loads repositories and applies business rules
+- The action decides whether to redirect or revalidate
+
+## Why mediatr-ts?
+
+mediatr-ts is a TypeScript implementation inspired by MediatR.
+
+I use it because it provides a clean dispatch layer between transport and application concerns. A Server Action or Route Handler doesn't know about a concrete handler implementation; it only sends a typed request to the mediator.
+
+This becomes particularly useful in larger Next.js applications where Server Actions can easily turn into miniature service layers with manually wired dependencies.
+
+With a mediator:
+
+- UI remains thin
+- Application logic stays centralized
+- Commands and queries remain discoverable
+- Dependencies stay out of the presentation layer
+
+## Architecture I Typically Use
+
+My practical CQRS structure usually looks like this:
+
+```text
+app/
+├─ Server Components
+├─ Server Actions
+└─ Route Handlers
+
+application/
+├─ commands/
+└─ queries/
+
+domain/
+├─ entities
+├─ value-objects
+└─ invariants
+
+infrastructure/
+├─ repositories
+├─ ORM
+├─ HTTP clients
+├─ cache
+└─ queues
+```
+
+The important part is not the folder structure.
+
+The important part is that the action doesn't know how persistence works. That responsibility belongs to the handler, which depends on repositories or gateways.
+
+This allows me to swap transport layers without rewriting business rules.
+
+## Reservation Example
+
+I'll use a booking system because it's easy to understand and demonstrates CQRS without introducing unnecessary complexity.
+
+The command:
+
+- Creates a booking
+- Validates seat availability
+- Persists data
+
+The query:
+
+- Returns a booking summary
+- Provides optimized data for a specific screen
+
+### Command
+
+```ts
+// application/commands/create-booking.command.ts
+
+export type CreateBookingCommand = {
+  userId: string;
+  seatId: string;
+};
+```
+
+### Command Handler
+
+```ts
+// application/commands/create-booking.handler.ts
+
+export interface BookingRepository {
+  isSeatAvailable(seatId: string): Promise<boolean>;
+
+  create(input: {
+    userId: string;
+    seatId: string;
+    status: "pending" | "confirmed" | "cancelled";
+  }): Promise<{
+    id: string;
+    seatId: string;
+    status: string;
+  }>;
+
+  save(booking: { id: string; seatId: string; status: string }): Promise<void>;
+}
+
+export class CreateBookingHandler {
+  constructor(private readonly bookingRepository: BookingRepository) {}
+
+  async handle(command: { userId: string; seatId: string }) {
+    const available = await this.bookingRepository.isSeatAvailable(
+      command.seatId,
+    );
+
+    if (!available) {
+      throw new Error("Seat is no longer available");
+    }
+
+    const booking = await this.bookingRepository.create({
+      userId: command.userId,
+      seatId: command.seatId,
+      status: "pending",
+    });
+
+    await this.bookingRepository.save(booking);
+
+    return {
+      bookingId: booking.id,
+    };
+  }
+}
+```
+
+### Server Action
+
+```ts
+"use server";
+
+import { mediator } from "@/infrastructure/mediator";
+
+export async function createBookingAction(formData: FormData) {
+  const command = {
+    userId: String(formData.get("userId")),
+    seatId: String(formData.get("seatId")),
+  };
+
+  return mediator.send(command);
+}
+```
+
+Notice that the action does not import a repository. It only builds the command and sends it through the mediator.
+
+The actual business logic lives in the handler, where dependency injection makes sense.
+
+## Query
+
+```ts
+// application/queries/get-booking-summary.query.ts
+
+export type GetBookingSummaryQuery = {
+  bookingId: string;
+};
+```
+
+### Query Handler
+
+```ts
+// application/queries/get-booking-summary.handler.ts
+
+export interface BookingReadRepository {
+  findById(bookingId: string): Promise<{
+    id: string;
+    seatId: string;
+    status: string;
+  } | null>;
+}
+
+export class GetBookingSummaryHandler {
+  constructor(private readonly bookingReadRepository: BookingReadRepository) {}
+
+  async handle(query: GetBookingSummaryQuery) {
+    const booking = await this.bookingReadRepository.findById(query.bookingId);
+
+    if (!booking) {
+      return null;
+    }
+
+    return {
+      id: booking.id,
+      seatId: booking.seatId,
+      status: booking.status,
+    };
+  }
+}
+```
+
+### Server Component
+
+```tsx
+import { mediator } from "@/infrastructure/mediator";
+
+export default async function BookingPage({
+  params,
+}: {
+  params: Promise<{ bookingId: string }>;
+}) {
+  const { bookingId } = await params;
+
+  const booking = await mediator.send({
+    bookingId,
+  });
+
+  if (!booking) {
+    return <div>Booking not found</div>;
+  }
+
+  return (
+    <div>
+      <h1>Booking #{booking.id}</h1>
+      <p>Seat: {booking.seatId}</p>
+      <p>Status: {booking.status}</p>
+    </div>
+  );
+}
+```
+
+For reads, I prefer query handlers that return exactly the shape required by the UI.
+
+This fits naturally with React Server Components because data can be resolved entirely on the server without bloating the client bundle.
+
+## Server Actions vs Route Handlers
+
+I generally use Server Actions for mutations initiated from inside the application:
+
+- Forms
+- Buttons
+- User interactions
+
+They integrate nicely with:
+
+- `revalidatePath`
+- `revalidateTag`
+- Progressive enhancement
+
+I use Route Handlers when I need:
+
+- Webhooks
+- Third-party integrations
+- Public APIs
+- Full Request/Response control
+
+Both can coexist on top of the same CQRS application layer.
+
+The transport changes.
+
+The command and query handlers do not.
+
+## What CQRS Actually Gives Me
+
+CQRS becomes valuable when reads and writes stop sharing the same requirements.
+
+Writes need:
+
+- Validation
+- Consistency
+- Authorization
+- Auditability
+- Side effects
+
+Reads need:
+
+- Speed
+- Caching
+- Projection
+- Screen-specific models
+
+Separating them allows each side to evolve independently.
+
+It also improves maintainability.
+
+A well-named command handler explains what changes.
+
+A query handler explains what gets read.
+
+The mediator keeps dispatching behavior consistent across the entire application.
+
+## When I Don't Use CQRS
+
+I don't adopt CQRS simply because it sounds architecturally sophisticated.
+
+If an application is:
+
+- Small
+- CRUD-oriented
+- Using similar read and write models
+
+Then a simple service layer or direct Server Actions are usually enough.
+
+CQRS introduces:
+
+- Commands
+- Queries
+- Handlers
+- Read models
+
+Those concepts only pay for themselves when complexity actually exists.
+
+## How I Use It in Production
+
+In production systems I typically follow three rules:
+
+1. Define commands and queries as explicit types.
+2. Register handlers through a composition root.
+3. Keep transport layers unaware of concrete implementations.
+
+When state changes occur, cache invalidation happens at the Next.js boundary using:
+
+```ts
+revalidatePath("/bookings");
+```
+
+or
+
+```ts
+revalidateTag("bookings");
+```
+
+I avoid putting framework concerns inside the domain model.
+
+The domain should not know that Next.js exists.
+
+## Practical Conclusion
+
+My rule is simple:
+
+Separate commands and queries when the system genuinely benefits from thinking differently about reads and writes.
+
+Next.js already provides the ideal building blocks:
+
+- Server Actions
+- Route Handlers
+- Server Components
+
+mediatr-ts adds a clean dispatch mechanism that keeps transport thin and business logic concentrated inside testable handlers.
+
+## Takeaways
+
+CQRS in Next.js is worth the effort when business complexity is real and read models differ significantly from write models.
+
+I keep:
+
+- The action as the boundary
+- The mediator as the dispatcher
+- The handler as the source of truth
+
+If that separation doesn't improve clarity, maintainability, or performance, I prefer not introducing CQRS at all.
+
+## References
+
+1. [Mutating Data | Next.js Docs](https://nextjs.org/docs/app/getting-started/mutating-data)
+2. [Route Handlers | Next.js Docs](https://nextjs.org/docs/app/getting-started/route-handlers)
+3. [Fetching Data | Next.js Docs](https://nextjs.org/docs/app/getting-started/fetching-data)
+4. [Mutating Data | Next.js Learn](https://nextjs.org/learn/dashboard-app/mutating-data)
+5. [mediatr-ts GitHub Repository](https://github.com/m4ss1m0g/mediatr-ts)
+6. [mediatr-ts Package | npm](https://www.npmjs.com/package/mediatr-ts)
+7. [Next.js Server Actions | Makerkit](https://makerkit.dev/blog/tutorials/nextjs-server-actions)

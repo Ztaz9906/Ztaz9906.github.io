@@ -1,18 +1,361 @@
 ---
 title: "SEO with Next.js App Router"
 date: "2025-08-05"
-excerpt: "Next.js App Router ships with first-class SEO primitives — generateMetadata, sitemap.ts, robots.ts, structured data via JSON-LD — but knowing which to reach for and when requires understanding how search engines actually crawl and index React apps."
-tags: ["SEO", "Next.js", "Performance", "Web"]
-coverImage: ""
+excerpt: "A practical guide to SEO in Next.js App Router, covering metadata, schema.org, sitemap and robots files, crawler behavior, and Core Web Vitals that actually matter in production."
+tags: ["nextjs", "seo", "app-router", "core-web-vitals", "typescript"]
+coverImage: "/blog/seo-with-nextjs-app-router/cover.jpg"
 ---
 
-{/* OUTLINE — full article coming soon
-  1. How search engines handle server-rendered vs client-rendered content
-  2. generateMetadata: dynamic titles, descriptions, OpenGraph per route
-  3. Sitemap.ts and robots.ts: the new file-based API
-  4. Structured data with JSON-LD (Article, BreadcrumbList, Person schemas)
-  5. Core Web Vitals and their effect on search ranking
-  6. Practical checklist for a portfolio/blog site
-*/}
+---
 
-Next.js App Router ships with first-class SEO primitives — generateMetadata, sitemap.ts, robots.ts, structured data via JSON-LD — but knowing which to reach for and when requires understanding how search engines actually crawl and index React apps.
+# SEO with Next.js App Router
+
+I treat SEO as a product requirement, not a marketing checkbox.
+
+In a Next.js App Router application, that means caring about what search engines actually receive, how metadata is generated per route, and whether performance decisions help or hurt crawling and ranking signals.
+
+The App Router makes this easier because metadata, robots, sitemap generation, and Open Graph images are now first-class framework features rather than custom integrations.
+
+## Why App Router Changes SEO
+
+The App Router changes the SEO conversation because more work happens inside Server Components.
+
+Next.js automatically generates `<head>` tags through the Metadata API, and both `metadata` and `generateMetadata` are only supported in Server Components.
+
+That is a significant improvement because SEO critical information can be resolved on the server instead of waiting for client-side hydration.
+
+The other major change is streaming.
+
+For dynamic routes, Next.js can stream metadata separately while rendering the page immediately.
+
+For search engines, however, Next.js disables metadata streaming and sends metadata directly in the `<head>` where crawlers expect it.
+
+That is exactly the tradeoff I want for SEO sensitive pages.
+
+## Metadata I Actually Use
+
+For static routes, I usually export a simple metadata object.
+
+For dynamic routes such as:
+
+- Product pages
+- Blog posts
+- Category pages
+
+I use `generateMetadata()` so the title, description, canonical URL, and social metadata reflect the actual record being rendered.
+
+Next.js also recommends sharing fetch logic between the page and metadata generation through React's `cache()` helper.
+
+```tsx
+// app/products/[slug]/page.tsx
+
+import type { Metadata } from "next";
+import { cache } from "react";
+
+const getProduct = cache(async (slug: string) => {
+  const res = await fetch(`https://api.example.com/products/${slug}`, {
+    next: { revalidate: 300 },
+  });
+
+  return res.json();
+});
+
+type Props = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+
+  const product = await getProduct(slug);
+
+  return {
+    title: `${product.name} | My Store`,
+    description: product.shortDescription,
+    alternates: {
+      canonical: `https://example.com/products/${slug}`,
+    },
+    openGraph: {
+      title: product.name,
+      description: product.shortDescription,
+      url: `https://example.com/products/${slug}`,
+      images: [
+        {
+          url: product.ogImage,
+        },
+      ],
+    },
+  };
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params;
+
+  const product = await getProduct(slug);
+
+  return <div>{product.name}</div>;
+}
+```
+
+This pattern gives me dynamic metadata without duplicating requests or pushing SEO critical information into client-side code.
+
+## Title and Description Strategy
+
+I prefer a simple convention:
+
+```text
+Page Title | Site Name
+```
+
+Next.js supports title templates, which makes this easy to enforce across large applications.
+
+The goal is consistency.
+
+Users should immediately understand:
+
+- What page they are viewing
+- What site they are on
+
+Descriptions matter too.
+
+Even though meta descriptions are not a direct ranking factor, they influence click-through rate.
+
+I write descriptions for humans, not search engines.
+
+Good descriptions explain:
+
+- What the page offers
+- Who it is for
+- Why it is useful
+
+## Structured Data
+
+Whenever a page qualifies for rich results, I add schema.org structured data.
+
+Common examples include:
+
+- Product
+- Article
+- BlogPosting
+- Organization
+- LocalBusiness
+
+I strongly prefer JSON-LD because it is easy to generate from the same data already powering the page.
+
+```tsx
+function ProductStructuredData({
+  name,
+  description,
+  image,
+  url,
+  price,
+}: {
+  name: string;
+  description: string;
+  image: string;
+  url: string;
+  price: string;
+}) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name,
+    description,
+    image,
+    url,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "USD",
+      price,
+      availability: "https://schema.org/InStock",
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(jsonLd),
+      }}
+    />
+  );
+}
+```
+
+Keeping structured data close to page data reduces the risk of schema drift and keeps machine readable content aligned with what users actually see.
+
+## Sitemap and Robots
+
+One of my favorite App Router improvements is the file-based approach to:
+
+- `robots.txt`
+- `sitemap.xml`
+
+Instead of maintaining custom scripts, Next.js lets me generate them directly from the `app` directory.
+
+### robots.ts
+
+```ts
+// app/robots.ts
+
+import type { MetadataRoute } from "next";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: ["/checkout/", "/account/"],
+    },
+    sitemap: "https://example.com/sitemap.xml",
+  };
+}
+```
+
+### sitemap.ts
+
+```ts
+// app/sitemap.ts
+
+import type { MetadataRoute } from "next";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const products = await fetch("https://api.example.com/products").then((r) =>
+    r.json(),
+  );
+
+  return [
+    {
+      url: "https://example.com",
+      lastModified: new Date(),
+    },
+
+    ...products.map((product: { slug: string; updatedAt: string }) => ({
+      url: `https://example.com/products/${product.slug}`,
+      lastModified: new Date(product.updatedAt),
+    })),
+  ];
+}
+```
+
+This keeps indexing infrastructure close to the application itself.
+
+## Crawlers and Streaming
+
+Server Components are an SEO advantage because they allow meaningful HTML to be delivered immediately.
+
+Streaming introduces an additional consideration.
+
+Humans can benefit from progressively rendered content.
+
+Crawlers generally prefer complete metadata up front.
+
+Fortunately, Next.js already handles this distinction.
+
+My rule remains simple:
+
+- Metadata should be available immediately.
+- Important content should be server-rendered.
+- Critical information should never depend on hydration.
+
+If a page only becomes understandable after JavaScript runs, I consider that an SEO failure.
+
+## Core Web Vitals
+
+Google currently focuses on three major metrics:
+
+### Largest Contentful Paint (LCP)
+
+Target:
+
+```text
+< 2.5 seconds
+```
+
+### Interaction to Next Paint (INP)
+
+Target:
+
+```text
+< 200 milliseconds
+```
+
+### Cumulative Layout Shift (CLS)
+
+Target:
+
+```text
+< 0.1
+```
+
+The App Router helps with these metrics, but architecture decisions still matter.
+
+The most common issues I encounter are:
+
+- Large client bundles
+- Oversized hero images
+- Layout shifts from missing dimensions
+- Heavy third-party scripts
+- Expensive interaction handlers
+
+My first optimization is usually reducing client-side JavaScript.
+
+If a component can stay server-rendered, I keep it server-rendered.
+
+## What I Optimize First
+
+For ecommerce pages:
+
+- Hero content
+- Product information
+- Internal linking
+- Canonical URLs
+
+For blog content:
+
+- Server-rendered articles
+- Structured data
+- Route-specific Open Graph images
+- Fast-loading media
+
+I also pay close attention to:
+
+- Fonts
+- Images
+- Third-party scripts
+
+The framework helps, but poor asset choices can still destroy Core Web Vitals.
+
+## My SEO Checklist
+
+Before shipping any App Router page, I verify:
+
+- Every page has a unique title.
+- Dynamic content uses `generateMetadata()`
+- Structured data exists where appropriate.
+- Sitemap and robots files are generated.
+- Indexable content is server-rendered.
+- Core Web Vitals remain within targets.
+- Canonical URLs are configured correctly.
+
+## Closing Takeaways
+
+SEO in Next.js App Router is mostly about doing the fundamentals well.
+
+I want:
+
+- Metadata generated on the server
+- Structured data tied to real content
+- Clean sitemap and robots generation
+- Server-rendered indexable content
+- Healthy Core Web Vitals
+
+When those pieces are in place, search engines, social platforms, and users all receive the same accurate representation of the page.
+
+That consistency is what makes a site easier to crawl, easier to share, and easier to trust.
+
+## References
+
+1. [Metadata and OG Images | Next.js Docs](https://nextjs.org/docs/app/getting-started/metadata-and-og-images)
+2. [Adding Metadata | Next.js Learn](https://nextjs.org/learn/dashboard-app/adding-metadata)
+3. [Understanding Core Web Vitals and Google Search Results | Google Search Central](https://developers.google.com/search/docs/appearance/core-web-vitals)

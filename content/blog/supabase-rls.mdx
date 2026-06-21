@@ -1,18 +1,452 @@
 ---
-title: "Supabase Row-Level Security in Practice"
+title: "Supabase Row Level Security in Practice"
 date: "2025-07-18"
-excerpt: "Row-Level Security moves authorization out of your application layer and into the database itself. When done right, it's a hard guarantee — even a buggy API route can't accidentally leak data. Here's how to design RLS policies that are both secure and maintainable."
-tags: ["Supabase", "PostgreSQL", "Security", "Auth"]
-coverImage: ""
+excerpt: "A practical guide to Row Level Security in Supabase and Postgres, with opinionated patterns for policies, performance, and testing before shipping."
+tags: ["supabase", "postgres", "row-level-security", "security", "testing"]
+coverImage: "/blog/supabase-row-level-security-in-practice/cover.jpg"
 ---
 
-{/* OUTLINE — full article coming soon
-  1. What RLS is and why it belongs in the DB, not the ORM
-  2. Enabling RLS and the 'deny by default' mental model
-  3. Writing your first policy: SELECT for authenticated users
-  4. Multi-tenant patterns: isolating data by organization_id
-  5. Debugging RLS: common pitfalls and how to test policies
-  6. Performance: index strategies that keep RLS fast
-*/}
+---
 
-Row-Level Security moves authorization out of your application layer and into the database itself. When done right, it's a hard guarantee — even a buggy API route can't accidentally leak data. Here's how to design RLS policies that are both secure and maintainable.
+# Supabase Row-Level Security in Practice
+
+I treat Row Level Security (RLS) as the last line of defense, not an optional hardening step.
+
+In Supabase, that matters even more because browser clients can talk directly to your database. The policy layer must be correct whether or not the application code gets it right.
+
+Supabase's documentation is explicit:
+
+> Once RLS is enabled, no data is accessible through the API until policies exist.
+
+That "deny by default" model is exactly why I trust RLS for multi-tenant systems and customer-facing applications.
+
+## Why RLS Matters
+
+Application-level authorization is useful, but it is not enough.
+
+A bug in:
+
+- A Server Action
+- An API route
+- An admin dashboard
+- A background worker
+
+can bypass application logic while the database still happily returns rows.
+
+RLS moves authorization into PostgreSQL itself.
+
+I think of application checks and RLS as separate failure domains:
+
+- The application decides what it intends to do.
+- The database decides what it is allowed to do.
+
+Supabase describes policies as implicit `WHERE` clauses attached to every query.
+
+That mental model is useful because it reminds me that authorization is enforced during query execution not just in the UI.
+
+## The Basic Pattern
+
+Before writing any policy, I verify that RLS is enabled.
+
+If I create tables through raw SQL, I never assume the dashboard has already done it for me.
+
+```sql id="d8a5v9"
+alter table public.todos
+enable row level security;
+
+grant select, insert, update, delete
+on public.todos
+to authenticated;
+
+grant select
+on public.todos
+to anon;
+```
+
+The important detail is that permissions and policies are different layers.
+
+**Grants** answer:
+
+> What actions can this role attempt?
+
+**Policies** answer:
+
+> Which rows can this role actually access?
+
+That distinction becomes important when debugging authorization failures.
+
+## Own Rows Only
+
+The most common RLS pattern is ownership.
+
+A user can only access their own rows.
+
+Supabase provides the `auth.uid()` helper, which returns the authenticated user's ID.
+
+Supabase also recommends wrapping it in `select` so PostgreSQL can evaluate it once per statement instead of once per row.
+
+```sql id="s0u53g"
+create table public.todos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  task text not null,
+  completed boolean not null default false
+);
+
+alter table public.todos
+enable row level security;
+
+create policy "Users can read their own todos"
+on public.todos
+for select
+to authenticated
+using (
+  (select auth.uid()) = user_id
+);
+
+create policy "Users can create their own todos"
+on public.todos
+for insert
+to authenticated
+with check (
+  (select auth.uid()) = user_id
+);
+
+create policy "Users can update their own todos"
+on public.todos
+for update
+to authenticated
+using (
+  (select auth.uid()) = user_id
+)
+with check (
+  (select auth.uid()) = user_id
+);
+
+create policy "Users can delete their own todos"
+on public.todos
+for delete
+to authenticated
+using (
+  (select auth.uid()) = user_id
+);
+```
+
+This structure is intentionally boring.
+
+Ownership policies should be obvious enough that another engineer can read them once and understand exactly what is allowed.
+
+One detail that surprises many people:
+
+For `UPDATE` operations, Supabase expects a matching `SELECT` policy or the update may not behave as expected.
+
+## Role Based Access
+
+As products grow, ownership alone becomes insufficient.
+
+Soon you need:
+
+- Support agents
+- Moderators
+- Operations staff
+- Organization administrators
+
+Supabase exposes roles such as `authenticated` and `anon` as PostgreSQL roles, allowing policies to target specific audiences directly.
+
+```sql id="q7x0mz"
+create table public.orders (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null,
+  status text not null,
+  total_cents int not null
+);
+
+alter table public.orders
+enable row level security;
+
+create policy "Customers can read their own orders"
+on public.orders
+for select
+to authenticated
+using (
+  (select auth.uid()) = customer_id
+);
+
+create policy "Support can read all orders"
+on public.orders
+for select
+to authenticated
+using (
+  (
+    select auth.jwt()
+      -> 'app_metadata'
+      ->> 'role'
+  ) = 'support'
+);
+```
+
+I prefer role claims stored in `app_metadata` or another controlled source.
+
+I never rely on user-editable metadata for authorization.
+
+If a role needs broader access, I usually create a dedicated policy instead of building giant `OR` expressions that become difficult to reason about.
+
+## Multi-Tenant Data
+
+Multi-tenancy is where RLS really shines.
+
+Most SaaS applications follow a simple rule:
+
+> Users can only access rows belonging to their organization.
+
+I model that relationship directly.
+
+```sql id="p52y2k"
+create table public.organizations (
+  id uuid primary key default gen_random_uuid(),
+  name text not null
+);
+
+create table public.organization_members (
+  organization_id uuid not null
+    references public.organizations(id),
+  user_id uuid not null
+    references auth.users(id),
+  role text not null,
+  primary key (
+    organization_id,
+    user_id
+  )
+);
+
+create table public.invoices (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null
+    references public.organizations(id),
+  amount_cents int not null
+);
+
+alter table public.invoices
+enable row level security;
+
+create policy "Org members can read invoices"
+on public.invoices
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.organization_members m
+    where m.organization_id =
+      invoices.organization_id
+      and m.user_id =
+        (select auth.uid())
+  )
+);
+```
+
+The policy is easy to read, but performance matters too.
+
+RLS checks execute as part of query execution, so poorly designed policies can become expensive at scale.
+
+## Performance at Scale
+
+RLS has a cost.
+
+The goal is to make that cost predictable.
+
+Supabase recommends:
+
+- Indexing columns used in policies
+- Wrapping helper functions in `select`
+- Minimizing joins
+- Adding filters to application queries
+- Using `TO` clauses where possible
+
+```sql id="w3vwrf"
+create index
+on public.todos (user_id);
+
+create index
+on public.invoices (organization_id);
+
+create index
+on public.organization_members (
+  user_id,
+  organization_id
+);
+```
+
+These indexes matter because policy execution is only as fast as the lookup path behind it.
+
+I also pay attention to views.
+
+Views often bypass RLS because they are created as `security definer`.
+
+In PostgreSQL 15+, I can force a view to respect underlying policies:
+
+```sql id="4om6a1"
+create view customer_invoices
+with (security_invoker = true)
+as
+select *
+from public.invoices;
+```
+
+Missing that detail can accidentally create a data leak.
+
+## What I Test
+
+I never ship RLS policies after manually clicking around the dashboard.
+
+Supabase recommends automated testing.
+
+My preference is database-level testing because it keeps authorization logic close to the schema.
+
+A simple pgTAP-style test looks like this:
+
+```sql id="mxqzt0"
+begin;
+
+create extension if not exists pgtap
+with schema extensions;
+
+select plan(4);
+
+set local role authenticated;
+
+set local request.jwt.claims =
+'{"sub":"11111111-1111-1111-1111-111111111111"}';
+
+select results_eq(
+  $$ select count(*) from public.todos $$,
+  $$ values (1) $$,
+  'authenticated user only sees their own todo'
+);
+
+select results_eq(
+  $$ select count(*)
+     from public.todos
+     where user_id =
+       '22222222-2222-2222-2222-222222222222' $$,
+  $$ values (0) $$,
+  'cannot see another user row'
+);
+
+select ok(
+  not exists (
+    select 1
+    from public.todos
+    where user_id <>
+      '11111111-1111-1111-1111-111111111111'
+  ),
+  'no cross-user leakage'
+);
+
+select * from finish();
+
+rollback;
+```
+
+I typically place these tests under:
+
+```text id="qck32e"
+supabase/tests/database
+```
+
+and run them through:
+
+```bash id="u3c4b2"
+supabase test db
+```
+
+That gives me a fast feedback loop before policies ever reach production.
+
+## Negative Cases First
+
+The strongest authorization tests are not happy-path tests.
+
+They are failure-path tests.
+
+I want to verify:
+
+- Anonymous users cannot read private data.
+- Users cannot update records they do not own.
+- Support staff only see what they are allowed to see.
+- Ownership cannot be reassigned through updates.
+
+I also test:
+
+- Missing JWT claims
+- Null user IDs
+- Expired sessions
+- Invalid tenant membership
+
+A failure to deny is usually much more dangerous than a failure to allow.
+
+## Common Mistakes
+
+### Disabling RLS to Fix a Query
+
+This is usually the wrong solution.
+
+If a query fails, the policy is often exposing a missing authorization rule in the system.
+
+RLS should remain enabled on all exposed tables.
+
+### Trusting User Metadata
+
+Supabase explicitly warns that `user_metadata` is user-controlled.
+
+Authorization data should come from:
+
+- `app_metadata`
+- Protected tables
+- Controlled claims
+
+### Clever Policies
+
+A policy should be explainable in one sentence.
+
+If it requires:
+
+- Multiple joins
+- Nested conditions
+- Complex subqueries
+
+I usually redesign the access model instead.
+
+## Practical Workflow
+
+My workflow is simple:
+
+1. Enable RLS by default.
+2. Create ownership or tenant policies.
+3. Add indexes for policy predicates.
+4. Test positive and negative cases.
+5. Review policies whenever the auth model changes.
+
+That process keeps security close to the schema instead of retrofitting it later.
+
+## Closing Takeaways
+
+RLS is one of the few security mechanisms that becomes more valuable as systems grow.
+
+In Supabase, I use it as a guardrail beneath application code rather than a replacement for it.
+
+My rules are simple:
+
+- Keep policies small.
+- Keep ownership explicit.
+- Index policy columns.
+- Test negative cases.
+- Treat RLS as part of the schema, not an afterthought.
+
+When those principles are followed, the database itself becomes a reliable authorization boundary even when application code makes mistakes.
+
+## References
+
+1. [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
+2. [Testing Your Database](https://supabase.com/docs/guides/database/testing)
+3. [CREATE POLICY](https://www.postgresql.org/docs/current/sql-createpolicy.html)
+4. [Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)

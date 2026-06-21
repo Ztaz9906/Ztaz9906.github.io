@@ -1,18 +1,180 @@
 ---
 title: "Building Scalable Systems with Domain-Driven Design"
-date: "2025-03-15"
-excerpt: "Domain-Driven Design isn't just a methodology — it's a shared language between engineers and business stakeholders. In this post I break down how strategic and tactical DDD patterns helped me keep a growing enterprise system coherent as requirements evolved."
-tags: ["DDD", "Architecture", "TypeScript"]
-coverImage: ""
+date: "2026-02-15"
+excerpt: "A practical, opinionated guide to using Domain-Driven Design to build scalable web systems with clear boundaries, strong domain models, and fewer framework-driven compromises."
+tags:
+  - domain-driven-design
+  - cqrs
+  - event-driven-architecture
+  - nextjs
+  - django
+coverImage: "/blog/building-scalable-systems-with-ddd/cover.jpg"
 ---
 
-{/* OUTLINE — full article coming soon
-  1. What problem does DDD actually solve? (coupling, ubiquitous language)
-  2. Strategic patterns: Bounded Contexts, Context Mapping
-  3. Tactical patterns: Entities, Value Objects, Aggregates, Domain Events
-  4. Real example from ABALink: isolating the billing subdomain
-  5. When NOT to use DDD (small CRUD apps, time constraints)
-  6. Takeaways and further reading
-*/}
+I’ve seen enough production systems to know this: the hard part usually isn’t choosing a framework, it’s keeping the software model aligned with the business as the codebase grows. Domain-Driven Design helps when the product is complex enough that “just add another CRUD endpoint” stops being a strategy and starts becoming a liability. DDD is not a religion, though it’s a set of tools for modeling real business behavior with enough structure to keep teams sane.
 
-Domain-Driven Design isn't just a methodology — it's a shared language between engineers and business stakeholders. In this post I break down how strategic and tactical DDD patterns helped me keep a growing enterprise system coherent as requirements evolved.
+## Why I reach for DDD
+
+I reach for DDD when the business language is already messy, overlapping, or disputed. If the same word means different things in the admin platform, e-commerce platform, and inventory system, that’s a modeling problem not a naming problem. DDD gives me a way to make those differences explicit through bounded contexts, so each part of the system can have its own model without pretending the whole company speaks one perfect language.
+
+In practice, that matters more than the code style. A clean folder structure does not rescue a domain model that mixes checkout rules, warehouse logic, and customer support workflows in one place. DDD gives me a boundary first mindset: define the business capability, name the language, and only then decide how to represent it in code.
+
+## Bounded contexts first
+
+Bounded contexts are the most important DDD concept in real applications because they stop model pollution. Martin Fowler describes them as the way DDD divides a large system into separate models with explicit relationships between them. In a real company, “order,” “product,” and “customer” almost always mean slightly different things depending on who is asking.
+
+I use bounded contexts to keep those meanings separate. For example, an inventory context cares about stock movements, reservations, and replenishment rules, while an e-commerce context cares about pricing, carts, promotions, and checkout. The shared database temptation is strong, but the shared-model temptation is worse; once every team depends on the same object graph, the model becomes political instead of useful.
+
+A useful test is simple: if two parts of the system change for different business reasons, they probably do not belong in the same context. If they have different vocabulary, different invariants, or different release cadence, I treat them as separate models even if they live in the same repo. That approach scales better than trying to normalize the entire business into one “clean architecture” diagram.
+
+## Entities, value objects, aggregates
+
+The entity/value object/aggregate distinction is still worth using, but only if it helps protect business rules. Fowler’s summary of DDD highlights the Evans classification entities, value objects, services and the aggregate pattern as core building blocks. The point is not taxonomy; the point is deciding where identity matters, where immutability helps, and where consistency must be enforced.
+
+I think of it like this:
+
+- **Entity**: has identity and lifecycle. A Product, Order, or Warehouse is an entity when the business cares that it is the same thing over time, even if its attributes change.
+- **Value object**: defined by its attributes, not identity. Money, EmailAddress, or ShippingAddress should usually be immutable and replaceable as a whole.
+- **Aggregate**: a consistency boundary. It groups entities and value objects that must change together under one root, and it limits what can be mutated directly.
+
+The mistake I see most often is modeling everything as an entity because IDs feel familiar. That usually produces an anemic model full of setters and validations scattered across serializers, forms, and views. A better approach is to move invariants into the domain object that actually owns them.
+
+## A TypeScript example
+
+In Next.js and TypeScript, I keep the domain model framework-free so it can be tested without React, HTTP, or the database layer. That gives me a model I can use from a server action, a route handler, a queue consumer, or a CLI script without rewriting core logic. Next.js supports fetching data directly in Server Components, which fits this separation nicely, while TypeScript’s `satisfies` operator helps keep typed contracts strict without throwing away inference.
+
+```typescript
+// domain/order.ts
+export class Money {
+  constructor(
+    public readonly amount: number,
+    public readonly currency: string,
+  ) {
+    if (amount < 0) throw new Error("Money cannot be negative");
+    if (!currency) throw new Error("Currency is required");
+  }
+
+  add(other: Money): Money {
+    if (other.currency !== this.currency) {
+      throw new Error("Currency mismatch");
+    }
+    return new Money(this.amount + other.amount, this.currency);
+  }
+}
+
+export class OrderLine {
+  constructor(
+    public readonly sku: string,
+    public readonly quantity: number,
+    public readonly unitPrice: Money,
+  ) {
+    if (quantity <= 0) throw new Error("Quantity must be positive");
+  }
+
+  subtotal(): Money {
+    return new Money(
+      this.unitPrice.amount * this.quantity,
+      this.unitPrice.currency,
+    );
+  }
+}
+
+export class Order {
+  private constructor(
+    public readonly id: string,
+    private lines: OrderLine[],
+    public status: "draft" | "submitted",
+  ) {}
+
+  static create(id: string): Order {
+    return new Order(id, [], "draft");
+  }
+
+  addLine(line: OrderLine) {
+    if (this.status !== "draft") throw new Error("Order is locked");
+    this.lines.push(line);
+  }
+
+  submit() {
+    if (this.lines.length === 0)
+      throw new Error("Cannot submit an empty order");
+    this.status = "submitted";
+  }
+
+  total(): Money {
+    return this.lines.reduce(
+      (sum, line) => sum.add(line.subtotal()),
+      new Money(0, this.lines[0]?.unitPrice.currency ?? "USD"),
+    );
+  }
+}
+```
+
+That style is intentionally boring. It gives me a domain object with rules, not a data bag with opinions outsourced to the framework. The domain layer becomes a stable center, while adapters around it can change as Next.js, Django, queues, and databases evolve.
+
+## Keeping the domain pure
+
+My rule is simple: the domain layer should not know whether it is being called by an API route, a Celery worker, a browser form, or a background job. Infrastructure concerns belong outside the domain, and the application layer should orchestrate the use case without embedding persistence or transport logic into business rules. That separation is the difference between a model that survives refactors and one that gets rebuilt every time the stack changes.
+
+In Django, that means I avoid pushing business logic into views or signals just because they are convenient. In Next.js, that means I keep server components and route handlers thin, using them to load data and call application services rather than embedding policy directly in the UI layer. The current Next.js docs explicitly support fetching in Server Components, which makes it easier to keep data access close to the boundary without polluting the domain itself.
+
+A good application service reads like a use case:
+
+```typescript
+type SubmitOrderInput = {
+  orderId: string;
+};
+
+export async function submitOrder(input: SubmitOrderInput) {
+  const order = await orderRepository.getById(input.orderId);
+  order.submit();
+  await orderRepository.save(order);
+  await eventBus.publish({
+    type: "order.submitted",
+    orderId: order.id,
+  } satisfies { type: "order.submitted"; orderId: string });
+}
+```
+
+That is the shape I want: load, execute domain behavior, persist, publish. Everything else serialization, transactions, retries, retries with idempotency, outbox handling belongs around the use case, not inside it.
+
+## Where DDD pays off
+
+DDD is genuinely worth the complexity when the business rules are non-trivial and the system is expected to change often. That usually means multiple teams, multiple subdomains, and workflows where one bad invariant can create financial or operational damage. I especially like it for enterprise admin platforms, commerce systems, and inventory-heavy products because those domains accumulate edge cases faster than simple CRUD apps ever do.
+
+DDD also pays off when integration boundaries matter. If one context publishes domain events and another reacts asynchronously, the model can evolve without forcing synchronous coupling everywhere. That is where DDD starts to pair naturally with CQRS and event-driven architecture: write models enforce consistency, read models optimize queries, and events bridge bounded contexts without collapsing them into one giant service.
+
+I would not sell DDD as the fastest way to ship a prototype. It adds concepts, coordination, and naming discipline, and those have real cost. But when the product has enough behavior that the business rules become the product, DDD is often the cheapest way to keep the codebase from turning into a pile of incidental complexity.
+
+## When it is overkill
+
+DDD is overkill when the app is mostly straightforward forms, simple records, and thin workflows. If the system has one team, one mental model, and very few invariants, a plain layered CRUD architecture is usually the better choice. The worst DDD implementations are the ones that add ceremony before the team has a real domain problem to solve.
+
+I also avoid forcing DDD into every feature of a large product. Not every corner of the system deserves an aggregate root, a repository, an application service, and a domain event. Sometimes the right answer is a simple query, a single table, and a well-named function; DDD should sharpen judgment, not replace it.
+
+## Common mistakes
+
+The most common mistake is treating DDD as a folder structure instead of a modeling discipline. Teams create `domain/`, `application/`, and `infrastructure/` directories, but the real logic still lives in serializers, ORM hooks, and UI handlers. The result looks architected while behaving like a spaghetti app with a nicer tree.
+
+The second mistake is creating too many aggregates. If every object is an aggregate root, you lose the benefits of transactional boundaries and end up with an object graph that is hard to reason about. Aggregates should be small enough to protect consistency and large enough to model the actual business invariant, not the database schema.
+
+The third mistake is leaking the database model into the domain model. Foreign keys, ORM conveniences, and eager-loading strategies are infrastructure concerns, not domain concepts. When the object model is shaped primarily by persistence, the code often becomes easy to store and hard to understand.
+
+The fourth mistake is ignoring language drift. If product, support, and engineering all use different words for the same thing, the bounded context boundary is either missing or undocumented. DDD works best when the team keeps refining the ubiquitous language and makes context boundaries visible in code and architecture diagrams.
+
+## What I actually do
+
+In real projects, I start with the business flows, not the classes. I map the major nouns and verbs, identify where the language changes, and then decide which boundary deserves a model and which boundary can stay simple. That usually gives me a small set of contexts, a handful of aggregates, and a clear place to put domain events and use cases.
+
+From there, I keep the domain model strict and the edges flexible. The domain knows the rules; the application layer coordinates; the infrastructure layer persists, queues, and integrates; and the UI stays thin. That structure works well in both Next.js/TypeScript and Django/Python because it keeps the core business behavior portable across frameworks.
+
+## Takeaways
+
+DDD is most useful when software needs to mirror a complicated business, not when it just needs more abstraction. I use bounded contexts to separate meanings, value objects to protect small rules, aggregates to guard consistency, and framework boundaries to keep the domain clean. If the system is too small for setups, I keep it simple and move on; if it is large enough to feel the pain, DDD earns its keep.
+
+## References
+
+1. [Domain Driven Design | Martin Fowler](https://martinfowler.com/bliki/DomainDrivenDesign.html)
+2. [Bounded Context | Martin Fowler](https://martinfowler.com/bliki/BoundedContext.html)
+3. [Domain-Driven Design tag | Martin Fowler](https://martinfowler.com/tags/domain%20driven%20design.html)
+4. [Domain Driven Design Community | DDD Community](https://www.dddcommunity.org)
