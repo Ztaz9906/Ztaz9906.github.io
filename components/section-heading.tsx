@@ -6,6 +6,7 @@ interface SectionHeadingProps {
   title: string
   description?: string
   className?: string
+  titleId?: string
 }
 
 export function SectionHeading({
@@ -13,13 +14,17 @@ export function SectionHeading({
   title,
   description,
   className,
+  titleId,
 }: SectionHeadingProps) {
   return (
     <Reveal className={cn("max-w-2xl", className)}>
       <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-cyan">
         {eyebrow}
       </p>
-      <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+      <h2
+        id={titleId}
+        className="text-balance text-3xl font-bold tracking-tight sm:text-4xl"
+      >
         {title}
       </h2>
       {description && (

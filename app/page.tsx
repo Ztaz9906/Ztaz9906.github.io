@@ -6,6 +6,7 @@ import { Projects } from "@/components/sections/projects"
 import { ArchitectureSection } from "@/components/diagrams/ArchitectureSection"
 import { Skills } from "@/components/sections/skills"
 import { Stats } from "@/components/sections/stats"
+import { HomeTerminalFallback } from "@/components/terminal/HomeTerminalFallback"
 import { Contact } from "@/components/sections/contact"
 import { Footer } from "@/components/footer"
 
@@ -21,6 +22,7 @@ export default function Home() {
         <ArchitectureSection />
         <Skills />
         <Stats />
+        <HomeTerminalFallback />
         <Contact />
       </main>
       <Footer />

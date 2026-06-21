@@ -1,3 +1,8 @@
+export const PROFILE = {
+  name: "Enrique Ferreiro",
+  role: "Software Engineer",
+} as const;
+
 export const NAV_LINKS = [
   { label: "About", href: "#about" },
   { label: "Experience", href: "#experience" },
@@ -5,14 +10,14 @@ export const NAV_LINKS = [
   { label: "Blog", href: "/blog" },
   { label: "Skills", href: "#skills" },
   { label: "Contact", href: "#contact" },
-]
+];
 
 export const SOCIALS = {
   github: "https://github.com/Ztaz9906",
-  linkedin: "https://www.linkedin.com/",
-  email: "enrique@example.com",
+  linkedin: "https://www.linkedin.com/in/enriquefa/",
+  email: "ztazhorde@gmail.com",
   resume: "/resume.pdf",
-}
+};
 
 export const CAPABILITIES = [
   {
@@ -35,7 +40,7 @@ export const CAPABILITIES = [
     icon: "radio",
     tags: ["Ably", "SSE", "Mapbox"],
   },
-] as const
+] as const;
 
 export const EXPERIENCE = [
   {
@@ -129,11 +134,11 @@ export const EXPERIENCE = [
     ],
     tags: ["Next.js 15", "DDD", "CQRS", "SSE", "Jest", "CI/CD"],
   },
-]
+];
 
 // Single source of truth — project data lives in lib/data/projects.ts
-export type { Project, ProjectMetric } from "@/lib/data/projects"
-export { PROJECTS } from "@/lib/data/projects"
+export type { Project, ProjectMetric } from "@/lib/data/projects";
+export { PROJECTS } from "@/lib/data/projects";
 
 export const SKILLS = [
   {
@@ -158,7 +163,14 @@ export const SKILLS = [
   },
   {
     category: "Backend",
-    items: ["Node.js", "Django", "Supabase", "Firebase", "GraphQL", "REST APIs"],
+    items: [
+      "Node.js",
+      "Django",
+      "Supabase",
+      "Firebase",
+      "GraphQL",
+      "REST APIs",
+    ],
   },
   {
     category: "Services & Payments",
@@ -178,11 +190,11 @@ export const SKILLS = [
     category: "Tools",
     items: ["Git", "GitHub", "CI/CD", "Jest", "Docker"],
   },
-]
+];
 
 export const STATS = [
   { value: 4, suffix: "+", label: "years experience" },
   { value: 7, suffix: "+", label: "projects shipped" },
   { value: 15, suffix: "+", label: "technologies" },
   { value: 1000, suffix: "+", label: "concurrent users supported" },
-]
+];
