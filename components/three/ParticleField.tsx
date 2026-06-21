@@ -128,7 +128,6 @@ export default function ParticleField() {
       <SceneCanvas
         cameraPosition={[0, 0, 8]}
         fov={60}
-        bgColor="transparent"
         enableGlow={false}
       >
         <Nebula pauseMotion={prefersReducedMotion} />

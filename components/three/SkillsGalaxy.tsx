@@ -601,7 +601,6 @@ export default function SkillsGalaxy({ planets, fallback }: SkillsGalaxyProps) {
         cameraPosition={[0, 6, 30]}
         fov={50}
         fallback={fallback}
-        bgColor="transparent"
         className="rounded-2xl"
       >
         <SolarSystemContent planets={planets} pauseMotion={prefersReducedMotion} />

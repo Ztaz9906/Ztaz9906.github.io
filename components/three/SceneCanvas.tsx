@@ -15,8 +15,6 @@ interface SceneCanvasProps {
   fov?: number;
   /** Camera position [x, y, z] (default [0, 0, 6]) */
   cameraPosition?: [number, number, number] | Vector3;
-  /** Background color (default dark navy #030712) */
-  bgColor?: string;
   /** Custom fallback element while the canvas loads */
   fallback?: ReactNode;
   /** Extra className applied to the outer wrapper */
@@ -170,13 +168,10 @@ export default function SceneCanvas({
   children,
   fov = 45,
   cameraPosition = [0, 0, 6],
-  bgColor = "#030712",
   fallback,
   className,
   enableGlow = true,
 }: SceneCanvasProps) {
-  const isTransparent = bgColor === "transparent";
-
   return (
     <WebGLErrorBoundary fallback={<WebGLUnavailableFallback />}>
       <Suspense fallback={fallback ?? <DefaultFallback />}>
@@ -184,8 +179,12 @@ export default function SceneCanvas({
           className={className}
           dpr={[1, 1.5]}
           camera={{ fov, position: cameraPosition, near: 0.1, far: 100 }}
-          gl={{ antialias: true, alpha: isTransparent, powerPreference: "default" }}
-          style={{ background: isTransparent ? "transparent" : bgColor }}
+          gl={{ alpha: true, antialias: true, powerPreference: "default" }}
+          onCreated={({ scene, gl }) => {
+            scene.background = null;
+            gl.setClearColor(0x000000, 0);
+          }}
+          style={{ background: "transparent" }}
         >
           <LightingRig />
           {children}

@@ -28,6 +28,26 @@ export function usePrefersReducedMotion(): boolean {
 }
 
 /**
+ * Detects whether WebGL is available in the current browser.
+ */
+export function useWebGLAvailable(): boolean {
+  const [isAvailable, setIsAvailable] = useState(false);
+
+  useEffect(() => {
+    try {
+      const canvas = document.createElement("canvas");
+      const context =
+        canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      setIsAvailable(Boolean(context));
+    } catch {
+      setIsAvailable(false);
+    }
+  }, []);
+
+  return isAvailable;
+}
+
+/**
  * Detects low-power / mobile devices where heavy WebGL scenes
  * should be swapped for a lighter fallback.
  *
@@ -43,12 +63,9 @@ export function useIsLowPowerDevice(): boolean {
   useEffect(() => {
     const isMobileUA =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
+        navigator.userAgent,
       );
-    const hasLowCores =
-      navigator.hardwareConcurrency != null &&
-      navigator.hardwareConcurrency <= 4;
-    setIsLowHardware(isMobileUA || hasLowCores);
+    setIsLowHardware(isMobileUA);
   }, []);
 
   return isSmallViewport || isLowHardware;

@@ -2,10 +2,10 @@
 
 import { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Float, RoundedBox, Html } from "@react-three/drei";
+import { Float, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import SceneCanvas from "./SceneCanvas";
-import { usePrefersReducedMotion, useIsLowPowerDevice } from "./use-device";
+import { usePrefersReducedMotion } from "./use-device";
 
 function ResponsiveFraming() {
   const { camera, size } = useThree();
@@ -36,7 +36,7 @@ function SceneContent({ children, pauseMotion }: SceneContentProps) {
         roughness: 0.9,
         metalness: 0.1,
       }),
-    []
+    [],
   );
   const monitorMaterial = useMemo(
     () =>
@@ -45,7 +45,7 @@ function SceneContent({ children, pauseMotion }: SceneContentProps) {
         roughness: 0.8,
         metalness: 0.2,
       }),
-    []
+    [],
   );
   const screenGlowMaterial = useMemo(
     () =>
@@ -56,7 +56,7 @@ function SceneContent({ children, pauseMotion }: SceneContentProps) {
         roughness: 0.2,
         metalness: 0.8,
       }),
-    []
+    [],
   );
 
   // Dispose materials on unmount to prevent WebGL memory leaks
@@ -124,30 +124,7 @@ function SceneContent({ children, pauseMotion }: SceneContentProps) {
           </mesh>
 
           {/* HTML Overlay Content */}
-          {children && (
-            <Html
-              transform
-              wrapperClass="monitor-screen"
-              distanceFactor={1.15}
-              position={[0, 0, 0.042]}
-              style={{
-                width: "800px",
-                height: "450px",
-                background: "rgba(3, 7, 18, 0.8)",
-                backdropFilter: "blur(4px)",
-                border: "1px solid rgba(59, 130, 246, 0.2)",
-                borderRadius: "12px",
-                padding: "32px",
-                display: "flex",
-                flexDirection: "column",
-                boxSizing: "border-box",
-                overflow: "hidden",
-                color: "white",
-              }}
-            >
-              {children}
-            </Html>
-          )}
+          {children}
         </RoundedBox>
       </Float>
     </group>
@@ -157,11 +134,15 @@ function SceneContent({ children, pauseMotion }: SceneContentProps) {
 export interface HeroSceneProps {
   children?: React.ReactNode;
   fallback?: React.ReactNode;
+  pauseMotion?: boolean;
 }
 
-export default function HeroScene({ children, fallback }: HeroSceneProps) {
+export default function HeroScene({
+  children,
+  fallback,
+  pauseMotion = false,
+}: HeroSceneProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
-  const isLowPower = useIsLowPowerDevice();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -170,20 +151,16 @@ export default function HeroScene({ children, fallback }: HeroSceneProps) {
 
   if (!mounted) return <>{fallback}</>;
 
-  if (isLowPower && fallback) {
-    return <>{fallback}</>;
-  }
-
   return (
     <div className="relative w-full h-[400px] lg:h-[500px]">
       <SceneCanvas
         cameraPosition={[0, 1.2, 5]}
         fov={45}
         fallback={fallback}
-        className="rounded-xl overflow-hidden"
+        className="rounded-xl overflow-hidden bg-transparent"
       >
         <ResponsiveFraming />
-        <SceneContent pauseMotion={prefersReducedMotion}>
+        <SceneContent pauseMotion={prefersReducedMotion || pauseMotion}>
           {children}
         </SceneContent>
       </SceneCanvas>
