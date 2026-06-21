@@ -1,8 +1,20 @@
+"use client";
+
 import { ArrowDown, Download, Github, Linkedin, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroVisual } from "@/components/hero-visual";
 import { Reveal } from "@/components/reveal";
 import { SOCIALS } from "@/lib/data";
+import dynamic from "next/dynamic";
+import { Suspense } from "react";
+
+const HeroScene = dynamic(() => import("@/components/three/HeroScene"), {
+  ssr: false,
+});
+
+const ParticleField = dynamic(() => import("@/components/three/ParticleField"), {
+  ssr: false,
+});
 
 export function Hero() {
   return (
@@ -10,6 +22,7 @@ export function Hero() {
       id="hero"
       className="relative flex min-h-screen items-center overflow-hidden hero-mesh"
     >
+      <ParticleField />
       <div aria-hidden className="absolute inset-0 grid-pattern" />
       <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-4 pb-20 pt-28 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-16">
         <div>
@@ -80,9 +93,35 @@ export function Hero() {
           </Reveal>
         </div>
 
-        {/* Isolated visual surface — swap for a 3D scene later */}
-        <Reveal delay={200} className="lg:justify-self-end lg:max-w-md w-full">
-          <HeroVisual />
+        {/* 3D Scene / Visual Surface */}
+        <Reveal delay={200} className="w-full lg:max-w-xl lg:justify-self-end">
+          <Suspense fallback={<HeroVisual />}>
+            <HeroScene fallback={<HeroVisual />}>
+              <div className="flex h-full w-full flex-col justify-center gap-6 p-8 text-left">
+                <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+                  <span className="size-4 rounded-full bg-[#FF5F57]" />
+                  <span className="size-4 rounded-full bg-[#FEBC2E]" />
+                  <span className="size-4 rounded-full bg-[#28C840]" />
+                  <span className="ml-2 font-mono text-lg text-white/50">
+                    portfolio.tsx
+                  </span>
+                </div>
+                <div className="flex-1 pt-4">
+                  <h2 className="mb-4 text-5xl font-bold tracking-tight text-white sm:text-6xl">
+                    Enrique Ferreiro
+                  </h2>
+                  <p className="flex items-center gap-3 font-mono text-2xl text-cyan sm:text-3xl">
+                    <span className="text-purple-400">const</span> role ={" "}
+                    <span className="text-green-400">
+                      "Software Engineer"
+                    </span>
+                    ;
+                    <span className="ml-2 inline-block size-6 animate-pulse bg-cyan/80" />
+                  </p>
+                </div>
+              </div>
+            </HeroScene>
+          </Suspense>
         </Reveal>
       </div>
 

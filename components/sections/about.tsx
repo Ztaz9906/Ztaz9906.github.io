@@ -40,10 +40,10 @@ export function About() {
 
         <Reveal delay={100}>
           <p className="text-balance text-2xl font-medium leading-snug sm:text-3xl">
-            26 years old. Software Engineer from Cuba.
+            26 years old. Software Engineer.
           </p>
           <p className="mt-4 max-w-xl text-pretty leading-relaxed text-muted-foreground">
-            Specialized in scalable applications and modern architectures —
+            Specialized in scalable applications and modern architectures
             turning complex domains into clean, event-driven systems that
             perform under real-world load.
           </p>
