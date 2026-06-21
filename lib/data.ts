@@ -130,74 +130,9 @@ export const EXPERIENCE = [
   },
 ]
 
-export const PROJECTS = [
-  {
-    name: "JUUZ",
-    tagline: "Real-time towing service platform",
-    description:
-      "Live driver tracking and a bidding system for price negotiation, supporting 1,000+ concurrent users. An event-driven architecture (SSE) improved notification delivery speed by ~50%, while multi-language support and push notifications increased retention by ~25%.",
-    tags: ["Next.js", "Ably", "Mapbox"],
-    metric: "1,000+ concurrent users",
-    caseStudy: "#",
-    github: "#",
-    featured: true,
-  },
-  {
-    name: "ABALink",
-    tagline: "Enterprise system with DDD + CQRS",
-    description:
-      "High-performance, server-rendered enterprise platform with real-time data via SSE, modular CRUD, and dynamic PDF generation. Streamlined internal productivity by 30% with 99.9% data consistency.",
-    tags: ["Next.js 15", "CQRS", "DDD", "SSE", "react-pdf"],
-    metric: "99.9% reliability",
-    caseStudy: "#",
-    github: "#",
-    featured: true,
-  },
-  {
-    name: "Charge2Go",
-    tagline: "EV charging station management",
-    description:
-      "Real-time reservation system for EV charging stations, architected with DDD and dependency injection (Brandi). Optimized GraphQL queries cut API response time by ~40%.",
-    tags: ["GraphQL", "DDD", "Brandi (DI)"],
-    metric: "500+ active users",
-    caseStudy: "#",
-    github: "#",
-    featured: true,
-  },
-  {
-    name: "El Chuletazo",
-    tagline: "Full e-commerce platform",
-    description:
-      "End-to-end e-commerce checkout flow supporting 1,000+ products, with Stripe payments and Google OAuth. Clean Architecture cut failed transactions by ~20%.",
-    tags: ["React", "Django", "Stripe", "Google OAuth"],
-    metric: "1,000+ products",
-    caseStudy: "#",
-    github: "#",
-    featured: true,
-  },
-  {
-    name: "Orfi Gallery",
-    tagline: "Inventory management system",
-    description:
-      "Automated real-time inventory analytics for 1,000+ stock items with DDD practices ensuring 99.9% data integrity.",
-    tags: ["Next.js", "PostgreSQL", "Prisma"],
-    metric: "99.9% data integrity",
-    caseStudy: "#",
-    github: "#",
-    featured: false,
-  },
-  {
-    name: "Video Forms",
-    tagline: "Video marketing platform",
-    description:
-      "Real-time lead capture and automated notifications, driving a 35% increase in lead conversion and ~70% faster response times.",
-    tags: ["Next.js", "Firebase"],
-    metric: "+35% conversion",
-    caseStudy: "#",
-    github: "#",
-    featured: false,
-  },
-]
+// Single source of truth — project data lives in lib/data/projects.ts
+export type { Project, ProjectMetric } from "@/lib/data/projects"
+export { PROJECTS } from "@/lib/data/projects"
 
 export const SKILLS = [
   {
