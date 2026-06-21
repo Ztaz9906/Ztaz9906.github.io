@@ -1,85 +1,74 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import Image from "next/image"
-import { notFound } from "next/navigation"
-import { ArrowLeft, ArrowRight, Calendar, Tag } from "lucide-react"
+import type { Metadata } from "next";
+import Link from "next/link";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import { ArrowLeft, ArrowRight, Calendar, Tag } from "lucide-react";
 
-import { PROJECTS } from "@/lib/data/projects"
-import { Badge } from "@/components/ui/badge"
-import { Reveal } from "@/components/reveal"
-import { ScreenshotsGallery } from "@/components/screenshots-gallery"
+import { PROJECTS } from "@/lib/data/projects";
+import { Badge } from "@/components/ui/badge";
+import { Reveal } from "@/components/reveal";
+import { ScreenshotsGallery } from "@/components/screenshots-gallery";
 
 // Diagram stubs — will be replaced with GSAP ScrollTrigger implementations
-import { DDDLayersDiagram } from "@/components/diagrams/DDDLayersDiagram"
-import { CQRSDiagram } from "@/components/diagrams/CQRSDiagram"
-import { EventDrivenDiagram } from "@/components/diagrams/EventDrivenDiagram"
-
-// ---------------------------------------------------------------------------
-// Static generation
-// ---------------------------------------------------------------------------
+import { DDDLayersDiagram } from "@/components/diagrams/DDDLayersDiagram";
+import { CQRSDiagram } from "@/components/diagrams/CQRSDiagram";
+import { EventDrivenDiagram } from "@/components/diagrams/EventDrivenDiagram";
 
 export function generateStaticParams() {
-  return PROJECTS.filter((p) => p.hasCaseStudy).map((p) => ({ slug: p.slug }))
+  return PROJECTS.filter((p) => p.hasCaseStudy).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params
-  const project = PROJECTS.find((p) => p.slug === slug)
-  if (!project) return {}
+  const { slug } = await params;
+  const project = PROJECTS.find((p) => p.slug === slug);
+  if (!project) return {};
 
   return {
-    title: `${project.name} — Case Study | Enrique Ferreiro`,
+    title: `${project.name} Case Study | Enrique Ferreiro`,
     description: project.oneLiner,
     openGraph: {
-      title: `${project.name} — Case Study`,
+      title: `${project.name} Case Study`,
       description: project.oneLiner,
       type: "article",
     },
-  }
+  };
 }
 
-// ---------------------------------------------------------------------------
-// Diagram selector — pure logic, no side effects
-// ---------------------------------------------------------------------------
-
 function ArchitectureDiagram({ stack }: { stack: string[] }) {
-  const hasCQRS = stack.some((s) => s.toUpperCase().includes("CQRS"))
-  const hasDDD = stack.some((s) => s.toUpperCase().includes("DDD"))
+  const hasCQRS = stack.some((s) => s.toUpperCase().includes("CQRS"));
+  const hasDDD = stack.some((s) => s.toUpperCase().includes("DDD"));
   const hasEventDriven = stack.some(
     (s) =>
       s.toUpperCase().includes("SSE") ||
       s.toUpperCase().includes("EVENT EMITTER"),
-  )
+  );
 
-  if (hasCQRS) return <CQRSDiagram />
-  if (hasEventDriven) return <EventDrivenDiagram />
-  if (hasDDD) return <DDDLayersDiagram />
-  return null
+  if (hasCQRS) return <CQRSDiagram />;
+  if (hasEventDriven) return <EventDrivenDiagram />;
+  if (hasDDD) return <DDDLayersDiagram />;
+  return null;
 }
-
-// ---------------------------------------------------------------------------
-// MetricsBand — mirrors the homepage Stats visual style
-// ---------------------------------------------------------------------------
 
 function MetricsBand({
   metrics,
 }: {
-  metrics: { label: string; value: string }[]
+  metrics: { label: string; value: string }[];
 }) {
   return (
     <section className="border-y border-border bg-card/30">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <dl
-          className={`grid gap-8 ${metrics.length <= 2
-            ? "grid-cols-2"
-            : metrics.length === 3
-              ? "grid-cols-3"
-              : "grid-cols-2 sm:grid-cols-4"
-            }`}
+          className={`grid gap-8 ${
+            metrics.length <= 2
+              ? "grid-cols-2"
+              : metrics.length === 3
+                ? "grid-cols-3"
+                : "grid-cols-2 sm:grid-cols-4"
+          }`}
         >
           {metrics.map((m) => (
             <div key={m.label} className="text-center">
@@ -92,21 +81,17 @@ function MetricsBand({
         </dl>
       </div>
     </section>
-  )
+  );
 }
-
-// ---------------------------------------------------------------------------
-// Content section — reusable labeled block
-// ---------------------------------------------------------------------------
 
 function ContentSection({
   eyebrow,
   title,
   children,
 }: {
-  eyebrow: string
-  title: string
-  children: React.ReactNode
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
 }) {
   return (
     <Reveal>
@@ -121,32 +106,28 @@ function ContentSection({
       </h2>
       {children}
     </Reveal>
-  )
+  );
 }
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 
 export default async function CaseStudyPage({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params
-  const projectIndex = PROJECTS.findIndex((p) => p.slug === slug)
-  if (projectIndex === -1 || !PROJECTS[projectIndex]!.hasCaseStudy) notFound()
+  const { slug } = await params;
+  const projectIndex = PROJECTS.findIndex((p) => p.slug === slug);
+  if (projectIndex === -1 || !PROJECTS[projectIndex]!.hasCaseStudy) notFound();
 
-  const project = PROJECTS[projectIndex]!
+  const project = PROJECTS[projectIndex]!;
 
   // Find next/prev strictly among case studies
-  const caseStudies = PROJECTS.filter(p => p.hasCaseStudy)
-  const caseIndex = caseStudies.findIndex(p => p.slug === slug)
-  const prevProject = caseStudies[caseIndex - 1] ?? null
-  const nextProject = caseStudies[caseIndex + 1] ?? null
+  const caseStudies = PROJECTS.filter((p) => p.hasCaseStudy);
+  const caseIndex = caseStudies.findIndex((p) => p.slug === slug);
+  const prevProject = caseStudies[caseIndex - 1] ?? null;
+  const nextProject = caseStudies[caseIndex + 1] ?? null;
 
-  const heroImage = project.screenshots[0]
-  const galleryImages = project.screenshots.slice(1)
+  const heroImage = project.screenshots[0];
+  const galleryImages = project.screenshots.slice(1);
 
   return (
     <div className="min-h-screen bg-background">
@@ -234,7 +215,6 @@ export default async function CaseStudyPage({
       {/* Main content                                                        */}
       {/* ------------------------------------------------------------------ */}
       <main className="mx-auto max-w-6xl space-y-20 px-4 py-20 sm:px-6">
-
         {/* 2. Problem */}
         <ContentSection eyebrow="// 01" title="The Problem">
           <p className="max-w-3xl text-pretty leading-relaxed text-muted-foreground">
@@ -378,5 +358,5 @@ export default async function CaseStudyPage({
         </div>
       </nav>
     </div>
-  )
+  );
 }
