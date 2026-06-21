@@ -1,41 +1,54 @@
-import type { Metadata } from "next"
-import Link from "next/link"
-import { ArrowUpRight, Clock, Tag } from "lucide-react"
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft, ArrowUpRight, Clock, Tag } from "lucide-react";
 
-import { getAllPosts } from "@/lib/blog"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { SectionHeading } from "@/components/section-heading"
+import { getAllPosts } from "@/lib/blog";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { SectionHeading } from "@/components/section-heading";
 
 // ---------------------------------------------------------------------------
 // Metadata
 // ---------------------------------------------------------------------------
 
 export const metadata: Metadata = {
-  title: "Blog — Enrique Ferreiro",
+  title: "Blog | Enrique Ferreiro",
   description:
     "Articles on software architecture, DDD, CQRS, real-time systems, and modern web development with Next.js and TypeScript.",
   openGraph: {
-    title: "Blog — Enrique Ferreiro",
+    title: "Blog | Enrique Ferreiro",
     description:
       "Articles on software architecture, DDD, CQRS, real-time systems, and modern web development.",
     type: "website",
   },
-}
+};
 
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export default function BlogListingPage() {
-  const posts = getAllPosts()
+  const posts = getAllPosts();
 
   return (
     <div className="min-h-screen bg-background">
       {/* Ambient glow */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 hero-mesh opacity-40" />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 hero-mesh opacity-40"
+      />
 
       <main className="relative mx-auto max-w-4xl px-4 pb-24 pt-20 sm:px-6 sm:pt-28">
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to Home
+          </Link>
+        </div>
+
         <SectionHeading
           eyebrow="// Writing"
           title="Blog"
@@ -93,5 +106,5 @@ export default function BlogListingPage() {
         )}
       </main>
     </div>
-  )
+  );
 }

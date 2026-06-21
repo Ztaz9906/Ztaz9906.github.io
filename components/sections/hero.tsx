@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowDown, Download, Github, Linkedin, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroVisual } from "@/components/hero-visual";
@@ -71,6 +72,9 @@ export function Hero() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
                 <a href="#projects">View Projects</a>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/blog">Read Blog</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
                 <a href={SOCIALS.resume}>
