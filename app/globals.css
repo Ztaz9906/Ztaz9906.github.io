@@ -112,3 +112,164 @@
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 80%);
 }
+
+/* ---------------------------------------------------------------------------
+   MDX prose — blog article typography
+   --------------------------------------------------------------------------- */
+
+.mdx-prose {
+  --prose-body: var(--color-muted-foreground);
+  --prose-heading: var(--color-foreground);
+  --prose-border: var(--color-border);
+  --prose-code-bg: #0d1117;
+  --prose-inline-code-bg: rgba(139, 92, 246, 0.12);
+  --prose-inline-code-color: #c4b5fd;
+  --prose-blockquote-border: var(--color-blue);
+  color: var(--prose-body);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+/* Readable max-width for long-form text */
+.mdx-prose > * {
+  max-width: 68ch;
+}
+
+/* Headings */
+.mdx-prose h1,
+.mdx-prose h2,
+.mdx-prose h3,
+.mdx-prose h4 {
+  color: var(--prose-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-top: 2.5em;
+  margin-bottom: 0.75em;
+}
+.mdx-prose h2 { font-size: 1.625rem; }
+.mdx-prose h3 { font-size: 1.25rem; }
+.mdx-prose h4 { font-size: 1.0625rem; }
+
+/* Paragraph spacing */
+.mdx-prose p {
+  margin-bottom: 1.25em;
+}
+
+/* Links */
+.mdx-prose a {
+  color: var(--color-blue);
+  text-decoration: underline;
+  text-decoration-color: rgba(59, 130, 246, 0.35);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s;
+}
+.mdx-prose a:hover {
+  text-decoration-color: var(--color-blue);
+}
+
+/* Lists */
+.mdx-prose ul,
+.mdx-prose ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.25em;
+}
+.mdx-prose ul { list-style-type: disc; }
+.mdx-prose ol { list-style-type: decimal; }
+.mdx-prose li { margin-bottom: 0.375em; }
+.mdx-prose li::marker { color: var(--color-cyan); }
+
+/* Blockquote */
+.mdx-prose blockquote {
+  border-left: 3px solid var(--prose-blockquote-border);
+  padding-left: 1.25rem;
+  margin-left: 0;
+  margin-bottom: 1.25em;
+  color: var(--color-muted-foreground);
+  font-style: italic;
+}
+
+/* Horizontal rule */
+.mdx-prose hr {
+  border: none;
+  border-top: 1px solid var(--prose-border);
+  margin: 2.5em 0;
+}
+
+/* Tables (remark-gfm) */
+.mdx-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5em;
+  font-size: 0.9rem;
+}
+.mdx-prose th,
+.mdx-prose td {
+  border: 1px solid var(--prose-border);
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+}
+.mdx-prose th {
+  background-color: var(--color-card);
+  color: var(--prose-heading);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+.mdx-prose tr:nth-child(even) {
+  background-color: rgba(17, 24, 39, 0.5);
+}
+
+/* Inline code */
+.mdx-prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background-color: var(--prose-inline-code-bg);
+  color: var(--prose-inline-code-color);
+  border-radius: 0.3em;
+  padding: 0.15em 0.4em;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Code blocks — rehype-pretty-code wraps in <figure data-rehype-pretty-code-figure> */
+.mdx-prose figure[data-rehype-pretty-code-figure] {
+  margin-bottom: 1.75em;
+  border-radius: 0.75rem;
+  border: 1px solid var(--prose-border);
+  overflow: hidden;
+  max-width: none; /* allow full width unlike prose paragraphs */
+}
+
+/* Caption / filename */
+.mdx-prose [data-rehype-pretty-code-title] {
+  background-color: var(--color-card);
+  border-bottom: 1px solid var(--prose-border);
+  padding: 0.4rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+}
+
+/* The <pre> element */
+.mdx-prose pre {
+  background-color: var(--prose-code-bg) !important;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Line numbers (optional, toggled via data-line-numbers) */
+.mdx-prose [data-line] {
+  display: inline-block;
+  width: 100%;
+}
+.mdx-prose [data-highlighted-line] {
+  background-color: rgba(59, 130, 246, 0.08);
+  border-left: 2px solid var(--color-blue);
+  padding-left: calc(1.5rem - 2px);
+  margin-left: -1.5rem;
+}
+

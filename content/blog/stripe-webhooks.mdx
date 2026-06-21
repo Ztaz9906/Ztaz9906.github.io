@@ -1,0 +1,18 @@
+---
+title: "Handling Stripe Webhooks Reliably"
+date: "2025-06-02"
+excerpt: "Webhooks from Stripe are one of those things that look trivial and bite you in production. Idempotency, signature verification, and proper event ordering aren't optional — they're the difference between a checkout flow your users trust and one that randomly fails."
+tags: ["Stripe", "Webhooks", "Next.js", "Backend"]
+coverImage: ""
+---
+
+{/* OUTLINE — full article coming soon
+  1. Why webhooks fail silently and why that's dangerous
+  2. Verifying Stripe signatures in a Next.js Route Handler
+  3. Idempotency: storing processed event IDs to avoid double-processing
+  4. Handling event ordering (payment_intent.created vs payment_intent.succeeded)
+  5. Testing webhooks locally with the Stripe CLI
+  6. Production checklist: retries, alerting, dead-letter handling
+*/}
+
+Webhooks from Stripe are one of those things that look trivial and bite you in production. Idempotency, signature verification, and proper event ordering aren't optional — they're the difference between a checkout flow your users trust and one that randomly fails.

@@ -1,0 +1,18 @@
+---
+title: "CQRS in Next.js: Separating Reads from Writes"
+date: "2025-04-20"
+excerpt: "CQRS — Command Query Responsibility Segregation — sounds academic until you hit a system where reads and writes have completely different performance and consistency requirements. Here's how I applied it inside Next.js App Router without over-engineering a solo project."
+tags: ["CQRS", "Next.js", "Architecture"]
+coverImage: ""
+---
+
+{/* OUTLINE — full article coming soon
+  1. The core idea: commands mutate state, queries read state — never both
+  2. Why it matters in Next.js (Server Actions as commands, RSC as queries)
+  3. Folder structure for CQRS in a Next.js 15 project
+  4. Concrete example: CreateReservationCommand vs GetReservationsQuery
+  5. Avoiding over-engineering: when plain MVC is enough
+  6. Combining with DDD: Aggregates emit Domain Events, queries project read models
+*/}
+
+CQRS — Command Query Responsibility Segregation — sounds academic until you hit a system where reads and writes have completely different performance and consistency requirements. Here's how I applied it inside Next.js App Router without over-engineering a solo project.
