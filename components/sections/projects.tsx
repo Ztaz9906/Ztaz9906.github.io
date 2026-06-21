@@ -1,10 +1,11 @@
-import { ArrowUpRight, Github } from "lucide-react"
+import Link from "next/link"
+import { ArrowUpRight } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SectionHeading } from "@/components/section-heading"
 import { Reveal } from "@/components/reveal"
-import { PROJECTS } from "@/lib/data"
+import { PROJECTS } from "@/lib/data/projects"
 import { cn } from "@/lib/utils"
 
 export function Projects() {
@@ -22,7 +23,7 @@ export function Projects() {
       <div className="mt-12 grid gap-5 sm:grid-cols-2">
         {PROJECTS.map((project, i) => (
           <Reveal
-            key={project.name}
+            key={project.slug}
             delay={(i % 2) * 80}
             className={cn(!project.featured && "sm:col-span-1")}
           >
@@ -43,47 +44,36 @@ export function Projects() {
                     {project.name}
                   </h3>
                   <p className="mt-1 font-mono text-xs text-blue">
-                    {project.tagline}
+                    {project.oneLiner}
                   </p>
                 </div>
-                <Badge variant="blue" className="shrink-0 whitespace-nowrap">
-                  {project.metric}
-                </Badge>
+                {project.metrics[0] && (
+                  <Badge variant="blue" className="shrink-0 whitespace-nowrap">
+                    {project.metrics[0].value}
+                  </Badge>
+                )}
               </div>
 
               <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground">
-                {project.description}
+                {project.solution}
               </p>
 
               <div className="mt-5 flex flex-wrap gap-1.5">
-                {project.tags.map((tag) => (
+                {project.stack.map((tag) => (
                   <Badge key={tag}>{tag}</Badge>
                 ))}
               </div>
 
-              <div className="mt-6 flex items-center gap-2 pt-1">
-                <Button asChild variant="outline" size="sm" className="flex-1">
-                  <a href={project.caseStudy}>
-                    Case Study
-                    <ArrowUpRight className="size-4" />
-                  </a>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`${project.name} GitHub repository`}
-                >
-                  <a
-                    href={project.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Github className="size-4" />
-                    GitHub
-                  </a>
-                </Button>
-              </div>
+              {project.hasCaseStudy && (
+                <div className="mt-6 flex items-center gap-2 pt-1">
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href={`/projects/${project.slug}`}>
+                      Case Study
+                      <ArrowUpRight className="size-4" />
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </Card>
           </Reveal>
         ))}

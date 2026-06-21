@@ -8,7 +8,7 @@ export function Footer() {
           © {year} Enrique Ferreiro
         </p>
         <p className="font-mono text-xs text-muted-foreground">
-          Built with Next.js + Supabase + Vercel
+          Built with Next.js + Vercel
         </p>
       </div>
     </footer>
