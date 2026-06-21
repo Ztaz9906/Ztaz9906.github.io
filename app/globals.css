@@ -273,3 +273,13 @@
   margin-left: -1.5rem;
 }
 
+/* References section */
+.mdx-prose .references-heading ~ ol {
+  font-size: 0.875rem; /* text-sm */
+  color: var(--color-muted-foreground);
+}
+.mdx-prose .references-heading ~ ol li {
+  margin-bottom: 0.5em;
+}
+
+
