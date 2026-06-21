@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -28,8 +26,6 @@ import {
 import type { PlanetData, SkillData } from "./types";
 
 export type { PlanetData, SkillData } from "./types";
-
-const PlanetFocusCtx = createContext<React.MutableRefObject<boolean> | null>(null);
 
 interface SkillsGalaxyProps {
   planets: PlanetData[];
@@ -418,7 +414,6 @@ function SolarSystemContent({
 }) {
   const auraRef = useRef<THREE.Mesh>(null);
   const controlsRef = useRef<any>(null);
-  const overPlanetCtx = useContext(PlanetFocusCtx);
   const focusTarget = useRef(new THREE.Vector3(0, 0, 0));
   const currentTarget = useRef(new THREE.Vector3(0, 0, 0));
   const [previewPlanetId, setPreviewPlanetId] = useState<string | null>(null);
@@ -435,12 +430,6 @@ function SolarSystemContent({
     }),
     []
   );
-
-  useEffect(() => {
-    if (overPlanetCtx) {
-      overPlanetCtx.current = lockedPlanetId !== null;
-    }
-  }, [lockedPlanetId, overPlanetCtx]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -592,31 +581,10 @@ export default function SkillsGalaxy({ planets, fallback }: SkillsGalaxyProps) {
   const isDesktop = useMediaQuery("(min-width: 1025px)");
   const isLowPower = useIsLowPowerDevice();
   const [mounted, setMounted] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const overPlanetRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-
-    const element = wrapperRef.current;
-    if (!element) return;
-
-    const handler = (event: WheelEvent) => {
-      if (!overPlanetRef.current) {
-        event.stopImmediatePropagation();
-        window.scrollBy({ top: event.deltaY, behavior: "auto" });
-      }
-    };
-
-    element.addEventListener("wheel", handler, { capture: true, passive: false });
-    return () => {
-      element.removeEventListener("wheel", handler, { capture: true });
-    };
-  }, [mounted]);
 
   useEffect(() => {
     return () => {
@@ -628,18 +596,16 @@ export default function SkillsGalaxy({ planets, fallback }: SkillsGalaxyProps) {
   if (!isDesktop || isLowPower || prefersReducedMotion) return <>{fallback}</>;
 
   return (
-    <PlanetFocusCtx.Provider value={overPlanetRef}>
-      <div ref={wrapperRef} className="relative h-[600px] w-full lg:h-[700px]">
-        <SceneCanvas
-          cameraPosition={[0, 6, 30]}
-          fov={50}
-          fallback={fallback}
-          bgColor="transparent"
-          className="rounded-2xl"
-        >
-          <SolarSystemContent planets={planets} pauseMotion={prefersReducedMotion} />
-        </SceneCanvas>
-      </div>
-    </PlanetFocusCtx.Provider>
+    <div className="relative h-[600px] w-full lg:h-[700px]">
+      <SceneCanvas
+        cameraPosition={[0, 6, 30]}
+        fov={50}
+        fallback={fallback}
+        bgColor="transparent"
+        className="rounded-2xl"
+      >
+        <SolarSystemContent planets={planets} pauseMotion={prefersReducedMotion} />
+      </SceneCanvas>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { SectionHeading } from "@/components/section-heading"
 import { Reveal } from "@/components/reveal"
 import { SKILLS } from "@/lib/data"
 import dynamic from "next/dynamic"
-import { Suspense } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { type PlanetData } from "@/components/three/types"
 
 const SkillsGalaxy = dynamic(() => import("@/components/three/SkillsGalaxy"), {
@@ -143,6 +143,27 @@ const PLANETS: PlanetData[] = [
 ];
 
 export function Skills() {
+  const sectionRef = useRef<HTMLElement>(null)
+  const [isSceneActive, setIsSceneActive] = useState(false)
+
+  useEffect(() => {
+    const element = sectionRef.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSceneActive(entry.isIntersecting)
+      },
+      {
+        rootMargin: "300px 0px",
+        threshold: 0,
+      }
+    )
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
   const gridFallback = (
     <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {SKILLS.map((group, i) => (
@@ -177,7 +198,7 @@ export function Skills() {
   );
 
   return (
-    <section id="skills" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
+    <section ref={sectionRef} id="skills" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="// 04"
         title="Skills & Tooling"
@@ -188,9 +209,13 @@ export function Skills() {
         <div className="mb-5 rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
           Hover a planet to preview it. Click a planet to lock focus, use your mouse wheel to zoom, hover a label to freeze it, and press <span className="font-mono text-foreground">Esc</span> to exit focus.
         </div>
-        <Suspense fallback={gridFallback}>
-          <SkillsGalaxy planets={PLANETS} fallback={gridFallback} />
-        </Suspense>
+        {isSceneActive ? (
+          <Suspense fallback={gridFallback}>
+            <SkillsGalaxy planets={PLANETS} fallback={gridFallback} />
+          </Suspense>
+        ) : (
+          gridFallback
+        )}
       </div>
     </section>
   )
