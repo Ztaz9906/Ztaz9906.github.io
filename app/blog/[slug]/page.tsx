@@ -122,14 +122,16 @@ export default async function BlogPostPage({
             {post.readingTime}
           </span>
           {post.tags.length > 0 && (
-            <span className="flex items-center gap-1.5">
-              <Tag className="size-3 text-muted-foreground" />
-              {post.tags.map((tag) => (
-                <Badge key={tag} variant="cyan">
-                  {tag}
-                </Badge>
-              ))}
-            </span>
+            <div className="basis-full pt-1 sm:basis-auto sm:pt-0">
+              <div className="flex flex-wrap items-start gap-1.5">
+                <Tag className="mt-1 size-3 shrink-0 text-muted-foreground" />
+                {post.tags.map((tag) => (
+                  <Badge key={tag} variant="cyan" className="max-w-full">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           )}
         </div>
 
@@ -187,39 +189,43 @@ export default async function BlogPostPage({
         aria-label="Blog post navigation"
         className="border-t border-border bg-card/30"
       >
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-6 px-4 py-8 sm:px-6">
+        <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between md:gap-6">
           {previousPost ? (
             <Link
               href={`/blog/${previousPost.slug}`}
-              className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="group flex w-full min-w-0 items-start gap-3 rounded-xl border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground transition-colors hover:border-blue/40 hover:text-foreground md:max-w-[48%] md:border-transparent md:bg-transparent md:p-0"
             >
-              <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
-              <div>
+              <ArrowLeft className="mt-0.5 size-4 shrink-0 transition-transform group-hover:-translate-x-1" />
+              <div className="min-w-0">
                 <p className="font-mono text-xs text-muted-foreground">
                   Newer Post
                 </p>
-                <p className="font-semibold text-foreground">{previousPost.title}</p>
+                <p className="text-pretty font-semibold text-foreground">
+                  {previousPost.title}
+                </p>
               </div>
             </Link>
           ) : (
-            <div />
+            <div className="hidden md:block" />
           )}
 
           {nextPost ? (
             <Link
               href={`/blog/${nextPost.slug}`}
-              className="group flex items-center gap-3 text-right text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="group flex w-full min-w-0 items-start justify-end gap-3 self-end rounded-xl border border-border/60 bg-background/40 p-4 text-right text-sm text-muted-foreground transition-colors hover:border-blue/40 hover:text-foreground md:max-w-[48%] md:border-transparent md:bg-transparent md:p-0"
             >
-              <div>
+              <div className="min-w-0">
                 <p className="font-mono text-xs text-muted-foreground">
                   Older Post
                 </p>
-                <p className="font-semibold text-foreground">{nextPost.title}</p>
+                <p className="text-pretty font-semibold text-foreground">
+                  {nextPost.title}
+                </p>
               </div>
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="mt-0.5 size-4 shrink-0 transition-transform group-hover:translate-x-1" />
             </Link>
           ) : (
-            <div />
+            <div className="hidden md:block" />
           )}
         </div>
       </nav>

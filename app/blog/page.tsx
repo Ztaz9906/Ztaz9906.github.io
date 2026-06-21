@@ -88,14 +88,16 @@ export default function BlogListingPage() {
                         {post.readingTime}
                       </span>
                       {post.tags.length > 0 && (
-                        <span className="flex items-center gap-1.5">
-                          <Tag className="size-3 text-muted-foreground" />
-                          {post.tags.map((tag) => (
-                            <Badge key={tag} variant="cyan">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </span>
+                        <div className="basis-full pt-1 sm:basis-auto sm:pt-0">
+                          <div className="flex flex-wrap items-start gap-1.5">
+                            <Tag className="mt-1 size-3 shrink-0 text-muted-foreground" />
+                            {post.tags.map((tag) => (
+                              <Badge key={tag} variant="cyan" className="max-w-full">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </Card>
