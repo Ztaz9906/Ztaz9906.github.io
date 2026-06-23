@@ -8,31 +8,39 @@ import remarkGfm from "remark-gfm";
 import rehypePrettyCode from "rehype-pretty-code";
 import fs from "fs";
 import path from "path";
+import { getTranslations } from "next-intl/server";
 
-import { getAllPosts, getPostBySlug } from "@/lib/blog";
+import { getAllPostSlugs, getAllPosts, getPostBySlug, type Locale } from "@/lib/blog";
 import { blogDiagrams } from "@/components/diagrams/blog";
 import { Badge } from "@/components/ui/badge";
-
-// ---------------------------------------------------------------------------
-// Static generation
-// ---------------------------------------------------------------------------
+import { SubpageHeader } from "@/components/subpage-header";
+import { ViewCounterSlot } from "@/components/ViewCounterSlot";
 
 export function generateStaticParams() {
-  return getAllPosts().map((p) => ({ slug: p.slug }));
+  const locales = ["en", "es"] as const
+  return locales.flatMap((locale) =>
+    getAllPostSlugs(locale).map((slug) => ({ locale, slug }))
+  )
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: Locale; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const { locale, slug } = await params;
+  const post = getPostBySlug(slug, locale);
   if (!post) return {};
 
   return {
-    title: `${post.title} | Enrique Ferreiro`,
+    title: post.title,
     description: post.excerpt,
+    alternates: {
+      languages: {
+        en: `/en/blog/${slug}`,
+        es: `/es/blog/${slug}`,
+      },
+    },
     openGraph: {
       title: post.title,
       description: post.excerpt,
@@ -49,9 +57,8 @@ const mdxOptions = {
     [
       rehypePrettyCode,
       {
-        // Dark theme that matches the site's #030712 background
         theme: "github-dark-dimmed",
-        keepBackground: false, // let CSS control the bg via .mdx-prose
+        keepBackground: false,
         defaultLang: "plaintext",
       },
     ] as [typeof rehypePrettyCode, Parameters<typeof rehypePrettyCode>[0]],
@@ -61,7 +68,8 @@ const mdxOptions = {
 const mdxComponents = {
   a: (props: any) => <a {...props} target="_blank" rel="noopener noreferrer" />,
   h2: (props: any) => {
-    const isReferences = props.children === "References";
+    const isReferences =
+      props.children === "References" || props.children === "Referencias";
     return (
       <h2
         {...props}
@@ -74,41 +82,33 @@ const mdxComponents = {
   },
 };
 
-export default async function BlogPostPage({
-  params,
+async function BlogPostContent({
+  post,
+  previousPost,
+  nextPost,
+  coverImageExists,
+  BlogDiagram,
+  locale,
 }: {
-  params: Promise<{ slug: string }>;
+  post: NonNullable<ReturnType<typeof getPostBySlug>> & { content: string };
+  previousPost: ReturnType<typeof getAllPosts>[number] | null;
+  nextPost: ReturnType<typeof getAllPosts>[number] | null;
+  coverImageExists: boolean;
+  BlogDiagram: (typeof blogDiagrams)[string] | undefined;
+  locale: Locale;
 }) {
-  const { slug } = await params;
-  const post = getPostBySlug(slug);
-  if (!post || !post.content) notFound();
-
-  const posts = getAllPosts();
-  const postIndex = posts.findIndex((entry) => entry.slug === slug);
-  const previousPost = postIndex > 0 ? posts[postIndex - 1] : null;
-  const nextPost =
-    postIndex >= 0 && postIndex < posts.length - 1 ? posts[postIndex + 1] : null;
-
-  const coverImageExists = post.coverImage
-    ? fs.existsSync(path.join(process.cwd(), "public", post.coverImage))
-    : false;
-  const BlogDiagram = blogDiagrams[slug];
+  const t = await getTranslations("blog");
+  const coverImagePath = post.coverImage ?? "";
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-4xl items-center px-4 sm:px-6">
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-2 font-mono text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back to Blog
-          </Link>
-        </div>
-      </div>
+      <SubpageHeader
+        locale={locale}
+        backHref={`/${locale}/blog`}
+        backLabel={t("postBackToBlog")}
+        maxWidthClassName="max-w-4xl"
+      />
 
-      {/* Article header */}
       <header className="mx-auto max-w-3xl px-4 pb-10 pt-10 sm:px-6">
         <div className="mb-5 flex flex-wrap items-center gap-3">
           <time
@@ -121,6 +121,7 @@ export default async function BlogPostPage({
             <Clock className="size-3" />
             {post.readingTime}
           </span>
+          <ViewCounterSlot page={post.slug} />
           {post.tags.length > 0 && (
             <div className="basis-full pt-1 sm:basis-auto sm:pt-0">
               <div className="flex flex-wrap items-start gap-1.5">
@@ -146,15 +147,14 @@ export default async function BlogPostPage({
         <div className="mt-8 h-px bg-border" />
       </header>
 
-      {/* Cover Image / Fallback */}
       <div className="mx-auto max-w-4xl px-4 pb-12 sm:px-6">
         <div className="relative aspect-[2/1] w-full overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
           {BlogDiagram ? (
             <BlogDiagram />
           ) : coverImageExists && post.coverImage ? (
             <Image
-              src={post.coverImage}
-              alt={post.title}
+              src={coverImagePath}
+              alt={t("postCoverImageAlt", { title: post.title })}
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 1024px"
@@ -163,15 +163,15 @@ export default async function BlogPostPage({
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-card/60 p-8">
               <p className="font-mono text-xs text-muted-foreground">
-                [ Cover Image pending — {post.coverImage || "no path provided"}{" "}
-                ]
+                {t("postCoverImagePending", {
+                  path: coverImagePath,
+                })}
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* MDX body */}
       <article className="mdx-prose mx-auto max-w-3xl px-4 pb-24 sm:px-6">
         <MDXRemote
           source={post.content}
@@ -186,19 +186,19 @@ export default async function BlogPostPage({
       </article>
 
       <nav
-        aria-label="Blog post navigation"
+        aria-label={t("postNavAria")}
         className="border-t border-border bg-card/30"
       >
         <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between md:gap-6">
           {previousPost ? (
             <Link
-              href={`/blog/${previousPost.slug}`}
+              href={`/${locale}/blog/${previousPost.slug}`}
               className="group flex w-full min-w-0 items-start gap-3 rounded-xl border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground transition-colors hover:border-blue/40 hover:text-foreground md:max-w-[48%] md:border-transparent md:bg-transparent md:p-0"
             >
               <ArrowLeft className="mt-0.5 size-4 shrink-0 transition-transform group-hover:-translate-x-1" />
               <div className="min-w-0">
                 <p className="font-mono text-xs text-muted-foreground">
-                  Newer Post
+                  {t("postNavNewer")}
                 </p>
                 <p className="text-pretty font-semibold text-foreground">
                   {previousPost.title}
@@ -211,12 +211,12 @@ export default async function BlogPostPage({
 
           {nextPost ? (
             <Link
-              href={`/blog/${nextPost.slug}`}
+              href={`/${locale}/blog/${nextPost.slug}`}
               className="group flex w-full min-w-0 items-start justify-end gap-3 self-end rounded-xl border border-border/60 bg-background/40 p-4 text-right text-sm text-muted-foreground transition-colors hover:border-blue/40 hover:text-foreground md:max-w-[48%] md:border-transparent md:bg-transparent md:p-0"
             >
               <div className="min-w-0">
                 <p className="font-mono text-xs text-muted-foreground">
-                  Older Post
+                  {t("postNavOlder")}
                 </p>
                 <p className="text-pretty font-semibold text-foreground">
                   {nextPost.title}
@@ -230,5 +230,37 @@ export default async function BlogPostPage({
         </div>
       </nav>
     </div>
+  );
+}
+
+export default async function BlogPostPage({
+  params,
+}: {
+  params: Promise<{ locale: Locale; slug: string }>;
+}) {
+  const { locale, slug } = await params;
+  const post = getPostBySlug(slug, locale);
+  if (!post || !post.content) notFound();
+
+  const posts = getAllPosts(locale);
+  const postIndex = posts.findIndex((entry) => entry.slug === slug);
+  const previousPost = postIndex > 0 ? posts[postIndex - 1] : null;
+  const nextPost =
+    postIndex >= 0 && postIndex < posts.length - 1 ? posts[postIndex + 1] : null;
+
+  const coverImageExists = post.coverImage
+    ? fs.existsSync(path.join(process.cwd(), "public", post.coverImage))
+    : false;
+  const BlogDiagram = blogDiagrams[slug];
+
+  return (
+    <BlogPostContent
+      post={{ ...post, content: post.content }}
+      previousPost={previousPost}
+      nextPost={nextPost}
+      coverImageExists={coverImageExists}
+      BlogDiagram={BlogDiagram}
+      locale={locale}
+    />
   );
 }

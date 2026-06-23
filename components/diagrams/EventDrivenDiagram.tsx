@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef } from "react"
+import { useTranslations } from "next-intl"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useGSAP } from "@gsap/react"
@@ -10,6 +11,7 @@ if (typeof window !== "undefined") {
 }
 
 export function EventDrivenDiagram() {
+  const t = useTranslations("common")
   const container = useRef<HTMLDivElement>(null)
 
   useGSAP(
@@ -66,16 +68,6 @@ export function EventDrivenDiagram() {
           </marker>
         </defs>
 
-        {/*
-          Event-Driven dependency flow:
-          - Publisher → Event Bus: publisher only knows about the bus, never the subscribers
-          - Event Bus → Subscriber A/B/C: bus fans out to each registered subscriber
-          - Publisher has ZERO knowledge of who is listening — that is the entire point.
-          - Adding a new Subscriber requires no change to the Publisher.
-          Arrows show data/event flow direction, not class dependency.
-        */}
-
-        {/* Publisher → Event Bus */}
         <path
           className="anim-line"
           d="M 160 150 L 234 150"
@@ -86,7 +78,6 @@ export function EventDrivenDiagram() {
           pathLength="100"
           markerEnd="url(#ed-arrow-cyan)"
         />
-        {/* Event Bus → Subscriber A (fan-out top) */}
         <path
           className="anim-line"
           d="M 360 150 C 400 150, 400 60, 454 60"
@@ -97,7 +88,6 @@ export function EventDrivenDiagram() {
           pathLength="100"
           markerEnd="url(#ed-arrow-blue)"
         />
-        {/* Event Bus → Subscriber B (fan-out center) */}
         <path
           className="anim-line"
           d="M 360 150 L 454 150"
@@ -108,7 +98,6 @@ export function EventDrivenDiagram() {
           pathLength="100"
           markerEnd="url(#ed-arrow-blue)"
         />
-        {/* Event Bus → Subscriber C (fan-out bottom) */}
         <path
           className="anim-line"
           d="M 360 150 C 400 150, 400 240, 454 240"
@@ -120,7 +109,6 @@ export function EventDrivenDiagram() {
           markerEnd="url(#ed-arrow-blue)"
         />
 
-        {/* Publisher — no direct link to subscribers */}
         <g transform="translate(40, 120)">
           <rect
             width="120"
@@ -138,7 +126,7 @@ export function EventDrivenDiagram() {
             fontWeight="bold"
             fontSize="12"
           >
-            Publisher
+            {t("eventPublisherTitle")}
           </text>
           <text
             x="60"
@@ -147,11 +135,10 @@ export function EventDrivenDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="9"
           >
-            no sub knowledge
+            {t("eventPublisherSubtitle")}
           </text>
         </g>
 
-        {/* Event Bus */}
         <g transform="translate(240, 120)">
           <rect
             width="120"
@@ -169,7 +156,7 @@ export function EventDrivenDiagram() {
             fontWeight="bold"
             fontSize="12"
           >
-            Event Bus
+            {t("eventBusTitle")}
           </text>
           <text
             x="60"
@@ -178,15 +165,14 @@ export function EventDrivenDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="10"
           >
-            Pub/Sub
+            {t("eventBusSubtitle")}
           </text>
         </g>
 
-        {/* Subscribers */}
         {[
-          { y: 40, label: "Subscriber A" },
-          { y: 130, label: "Subscriber B" },
-          { y: 220, label: "Subscriber C" },
+          { y: 40, label: t("eventSubscriberA") },
+          { y: 130, label: t("eventSubscriberB") },
+          { y: 220, label: t("eventSubscriberC") },
         ].map((sub) => (
           <g key={sub.label} transform={`translate(460, ${sub.y})`}>
             <rect

@@ -1,0 +1,396 @@
+---
+title: "CQRS en Next.js con mediatr-ts"
+date: "2025-04-20"
+excerpt: "CQRS práctico en Next.js con Server Actions, Route Handlers y mediatr-ts, mostrando cómo encajan comandos, queries, handlers y read models en una app real de TypeScript."
+tags:
+  ["cqrs", "nextjs", "mediatr-ts", "typescript", "arquitectura-event-driven"]
+coverImage: "/blog/cqrs-in-nextjs/cover.jpg"
+---
+
+# CQRS en Next.js con mediatr-ts
+
+Implemento CQRS en Next.js cuando el sistema ya tiene dos necesidades claramente distintas: escribir con reglas de negocio estrictas y leer mediante vistas optimizadas. En esa separación, una Server Action no debería tocar repositories directamente; su responsabilidad es construir un comando o una query y enviarla a través de mediatr-ts. El handler correspondiente recibe la dependencia del repository y ejecuta la lógica de negocio.
+
+## El cambio real
+
+CQRS no va de crear más carpetas ni de duplicar tu backend. En la práctica, lo que cambia es que la intención y la ejecución dejan de vivir dentro de la misma función.
+
+Un comando expresa qué debería ocurrir.
+
+Un handler decide cómo ocurre.
+
+Una query devuelve exactamente la forma de datos que la UI necesita.
+
+Esta separación encaja de forma natural en Next.js porque el App Router ya distingue entre Server Actions para mutaciones y Server Components o Route Handlers para lecturas.
+
+En lugar de escribir código que se ve así:
+
+- Abrir formulario
+- Validar input
+- Consultar repository
+- Guardar cambios
+- Revalidar caché
+- Devolver datos
+
+Todo pasa a ser:
+
+- La Server Action crea un comando
+- mediatr-ts lo despacha
+- El handler carga repositories y aplica reglas de negocio
+- La action decide si redirigir o revalidar
+
+## ¿Por qué mediatr-ts?
+
+mediatr-ts es una implementación en TypeScript inspirada en MediatR.
+
+La uso porque proporciona una capa de dispatch limpia entre las preocupaciones de transporte y de aplicación. Una Server Action o un Route Handler no conoce una implementación concreta del handler; solo envía una request tipada al mediator.
+
+Esto se vuelve especialmente útil en aplicaciones grandes de Next.js donde las Server Actions pueden convertirse fácilmente en pequeñas capas de servicio con dependencias cableadas manualmente.
+
+Con un mediator:
+
+- La UI se mantiene delgada
+- La lógica de aplicación permanece centralizada
+- Los comandos y queries siguen siendo descubribles
+- Las dependencias se mantienen fuera de la capa de presentación
+
+## Arquitectura que suelo usar
+
+Mi estructura práctica de CQRS normalmente se ve así:
+
+```text
+app/
+â”œâ”€ Server Components
+â”œâ”€ Server Actions
+â””â”€ Route Handlers
+
+application/
+â”œâ”€ commands/
+â””â”€ queries/
+
+domain/
+â”œâ”€ entities
+â”œâ”€ value-objects
+â””â”€ invariants
+
+infrastructure/
+â”œâ”€ repositories
+â”œâ”€ ORM
+â”œâ”€ HTTP clients
+â”œâ”€ cache
+â””â”€ queues
+```
+
+Lo importante no es la estructura de carpetas.
+
+Lo importante es que la action no conoce cómo funciona la persistencia. Esa responsabilidad pertenece al handler, que depende de repositories o gateways.
+
+Esto me permite cambiar capas de transporte sin reescribir reglas de negocio.
+
+## Ejemplo de reservas
+
+Voy a usar un sistema de reservas porque es fácil de entender y demuestra CQRS sin introducir complejidad innecesaria.
+
+El comando:
+
+- Crea una reserva
+- Valida disponibilidad del asiento
+- Persiste datos
+
+La query:
+
+- Devuelve un resumen de la reserva
+- Proporciona datos optimizados para una pantalla concreta
+
+### Comando
+
+```ts
+// application/commands/create-booking.command.ts
+
+export type CreateBookingCommand = {
+  userId: string;
+  seatId: string;
+};
+```
+
+### Command Handler
+
+```ts
+// application/commands/create-booking.handler.ts
+
+export interface BookingRepository {
+  isSeatAvailable(seatId: string): Promise<boolean>;
+
+  create(input: {
+    userId: string;
+    seatId: string;
+    status: "pending" | "confirmed" | "cancelled";
+  }): Promise<{
+    id: string;
+    seatId: string;
+    status: string;
+  }>;
+
+  save(booking: { id: string; seatId: string; status: string }): Promise<void>;
+}
+
+export class CreateBookingHandler {
+  constructor(private readonly bookingRepository: BookingRepository) {}
+
+  async handle(command: { userId: string; seatId: string }) {
+    const available = await this.bookingRepository.isSeatAvailable(
+      command.seatId,
+    );
+
+    if (!available) {
+      throw new Error("Seat is no longer available");
+    }
+
+    const booking = await this.bookingRepository.create({
+      userId: command.userId,
+      seatId: command.seatId,
+      status: "pending",
+    });
+
+    await this.bookingRepository.save(booking);
+
+    return {
+      bookingId: booking.id,
+    };
+  }
+}
+```
+
+### Server Action
+
+```ts
+"use server";
+
+import { mediator } from "@/infrastructure/mediator";
+
+export async function createBookingAction(formData: FormData) {
+  const command = {
+    userId: String(formData.get("userId")),
+    seatId: String(formData.get("seatId")),
+  };
+
+  return mediator.send(command);
+}
+```
+
+Fíjate que la action no importa ningún repository. Solo construye el comando y lo envía a través del mediator.
+
+La lógica real de negocio vive en el handler, donde dependency injection sí tiene sentido.
+
+## Query
+
+```ts
+// application/queries/get-booking-summary.query.ts
+
+export type GetBookingSummaryQuery = {
+  bookingId: string;
+};
+```
+
+### Query Handler
+
+```ts
+// application/queries/get-booking-summary.handler.ts
+
+export interface BookingReadRepository {
+  findById(bookingId: string): Promise<{
+    id: string;
+    seatId: string;
+    status: string;
+  } | null>;
+}
+
+export class GetBookingSummaryHandler {
+  constructor(private readonly bookingReadRepository: BookingReadRepository) {}
+
+  async handle(query: GetBookingSummaryQuery) {
+    const booking = await this.bookingReadRepository.findById(query.bookingId);
+
+    if (!booking) {
+      return null;
+    }
+
+    return {
+      id: booking.id,
+      seatId: booking.seatId,
+      status: booking.status,
+    };
+  }
+}
+```
+
+### Server Component
+
+```tsx
+import { mediator } from "@/infrastructure/mediator";
+
+export default async function BookingPage({
+  params,
+}: {
+  params: Promise<{ bookingId: string }>;
+}) {
+  const { bookingId } = await params;
+
+  const booking = await mediator.send({
+    bookingId,
+  });
+
+  if (!booking) {
+    return <div>Booking not found</div>;
+  }
+
+  return (
+    <div>
+      <h1>Booking #{booking.id}</h1>
+      <p>Seat: {booking.seatId}</p>
+      <p>Status: {booking.status}</p>
+    </div>
+  );
+}
+```
+
+Para las lecturas, prefiero query handlers que devuelvan exactamente la forma requerida por la UI.
+
+Esto encaja de forma natural con React Server Components porque los datos pueden resolverse completamente en el servidor sin inflar el bundle del cliente.
+
+## Server Actions vs Route Handlers
+
+Normalmente uso Server Actions para mutaciones iniciadas desde dentro de la aplicación:
+
+- Formularios
+- Botones
+- Interacciones de usuario
+
+Se integran muy bien con:
+
+- `revalidatePath`
+- `revalidateTag`
+- Progressive enhancement
+
+Uso Route Handlers cuando necesito:
+
+- Webhooks
+- Integraciones con terceros
+- APIs públicas
+- Control total de Request/Response
+
+Ambos pueden coexistir sobre la misma capa de aplicación CQRS.
+
+El transporte cambia.
+
+Los command handlers y query handlers no.
+
+## Lo que CQRS realmente me aporta
+
+CQRS se vuelve valioso cuando lecturas y escrituras dejan de compartir los mismos requisitos.
+
+Las escrituras necesitan:
+
+- Validación
+- Consistencia
+- Autorización
+- Trazabilidad
+- Side effects
+
+Las lecturas necesitan:
+
+- Velocidad
+- Caché
+- Proyección
+- Modelos específicos por pantalla
+
+Separarlas permite que cada lado evolucione de forma independiente.
+
+También mejora la mantenibilidad.
+
+Un command handler bien nombrado explica qué cambia.
+
+Un query handler explica qué se lee.
+
+El mediator mantiene consistente el comportamiento de dispatch a lo largo de toda la aplicación.
+
+## Cuándo no uso CQRS
+
+No adopto CQRS solo porque suene sofisticado desde el punto de vista arquitectónico.
+
+Si una aplicación es:
+
+- Pequeña
+- Orientada a CRUD
+- Con modelos de lectura y escritura similares
+
+Entonces una capa de servicios simple o Server Actions directas suelen ser suficientes.
+
+CQRS introduce:
+
+- Comandos
+- Queries
+- Handlers
+- Read models
+
+Esos conceptos solo se pagan solos cuando la complejidad realmente existe.
+
+## Cómo lo uso en producción
+
+En sistemas de producción suelo seguir tres reglas:
+
+1. Definir comandos y queries como tipos explícitos.
+2. Registrar handlers a través de un composition root.
+3. Mantener las capas de transporte ajenas a implementaciones concretas.
+
+Cuando ocurren cambios de estado, la invalidación de caché sucede en el boundary de Next.js usando:
+
+```ts
+revalidatePath("/bookings");
+```
+
+o
+
+```ts
+revalidateTag("bookings");
+```
+
+Evito meter preocupaciones del framework dentro del modelo de dominio.
+
+El dominio no debería saber que Next.js existe.
+
+## Conclusión práctica
+
+Mi regla es simple:
+
+Separa comandos y queries cuando el sistema realmente se beneficia de pensar distinto sobre lecturas y escrituras.
+
+Next.js ya proporciona los bloques ideales:
+
+- Server Actions
+- Route Handlers
+- Server Components
+
+mediatr-ts añade un mecanismo de dispatch limpio que mantiene fino el transporte y concentra la lógica de negocio dentro de handlers testeables.
+
+## Conclusiones
+
+CQRS en Next.js vale el esfuerzo cuando la complejidad de negocio es real y los read models difieren de forma significativa de los write models.
+
+Yo mantengo:
+
+- La action como boundary
+- El mediator como dispatcher
+- El handler como fuente de verdad
+
+Si esa separación no mejora claridad, mantenibilidad o rendimiento, prefiero no introducir CQRS en absoluto.
+
+## Referencias
+
+1. [Mutating Data | Documentación de Next.js](https://nextjs.org/docs/app/getting-started/mutating-data)
+2. [Route Handlers | Documentación de Next.js](https://nextjs.org/docs/app/getting-started/route-handlers)
+3. [Fetching Data | Documentación de Next.js](https://nextjs.org/docs/app/getting-started/fetching-data)
+4. [Mutating Data | Next.js Learn](https://nextjs.org/learn/dashboard-app/mutating-data)
+5. [Repositorio GitHub de mediatr-ts](https://github.com/m4ss1m0g/mediatr-ts)
+6. [Paquete mediatr-ts | npm](https://www.npmjs.com/package/mediatr-ts)
+7. [Next.js Server Actions | Makerkit](https://makerkit.dev/blog/tutorials/nextjs-server-actions)

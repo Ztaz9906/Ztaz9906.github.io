@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowDown, Download, Github, Linkedin, Mail } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useLocale, useTranslations } from "next-intl";
 import { Suspense, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ const ParticleField = dynamic(() => import("@/components/three/ParticleField"), 
 });
 
 export function Hero() {
+  const locale = useLocale();
+  const t = useTranslations("hero");
   const sectionRef = useRef<HTMLElement>(null);
   const [isSceneActive, setIsSceneActive] = useState(false);
 
@@ -55,7 +58,7 @@ export function Hero() {
           <Reveal>
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 font-mono text-xs uppercase tracking-[0.2em] text-cyan">
               <span className="size-1.5 rounded-full bg-cyan" />
-              Software Engineer
+              {t("roleBadge")}
             </p>
           </Reveal>
 
@@ -67,26 +70,26 @@ export function Hero() {
 
           <Reveal delay={140}>
             <p className="mt-5 max-w-xl text-pretty font-mono text-sm text-muted-foreground sm:text-base">
-              DDD • CQRS • Event-Driven • Next.js • TypeScript • Python
+              {t("tagline")}
             </p>
           </Reveal>
 
           <Reveal delay={220}>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
-                <a href="#projects">View Projects</a>
+                <a href="#projects">{t("ctaViewProjects")}</a>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/blog">Read Blog</Link>
+                <Link href={`/${locale}/blog`}>{t("ctaReadBlog")}</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
                 <a href={SOCIALS.resume}>
                   <Download className="size-4" />
-                  Download CV
+                  {t("ctaDownloadCv")}
                 </a>
               </Button>
               <Button asChild variant="ghost" size="lg">
-                <a href="#contact">Contact Me</a>
+                <a href="#contact">{t("ctaContactMe")}</a>
               </Button>
             </div>
           </Reveal>
@@ -97,7 +100,7 @@ export function Hero() {
                 href={SOCIALS.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="GitHub profile"
+                aria-label={t("ariaGithubProfile")}
                 className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-blue/60 hover:text-foreground"
               >
                 <Github className="size-5" />
@@ -106,14 +109,14 @@ export function Hero() {
                 href={SOCIALS.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="LinkedIn profile"
+                aria-label={t("ariaLinkedinProfile")}
                 className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-blue/60 hover:text-foreground"
               >
                 <Linkedin className="size-5" />
               </a>
               <a
                 href={`mailto:${SOCIALS.email}`}
-                aria-label="Send email"
+                aria-label={t("ariaSendEmail")}
                 className="inline-flex size-10 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-blue/60 hover:text-foreground"
               >
                 <Mail className="size-5" />
@@ -138,10 +141,10 @@ export function Hero() {
       <a
         href="#about"
         className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-foreground sm:flex"
-        aria-label="Scroll to explore"
+        aria-label={t("scrollToExplore")}
       >
         <span className="font-mono text-[11px] uppercase tracking-[0.2em]">
-          Scroll to explore
+          {t("scrollToExplore")}
         </span>
         <ArrowDown className="size-4 animate-bounce" />
       </a>

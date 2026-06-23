@@ -1,0 +1,377 @@
+---
+title: "Manejando Stripe Webhooks de forma confiable"
+date: "2025-06-02"
+excerpt: "Una guía práctica para manejar Stripe webhooks de forma confiable en una app ecommerce con Next.js y TypeScript, con verificación de firma, idempotencia, reintentos y procesamiento de eventos seguro para producción."
+tags: ["stripe", "webhooks", "nextjs", "typescript", "pagos"]
+coverImage: "/blog/handling-stripe-webhooks-reliably/cover.jpg"
+---
+
+---
+
+# Manejando Stripe Webhooks de forma confiable
+
+Aprendí rápido que los Stripe webhooks no son ruido de fondo alrededor de los pagos: son la fuente de verdad para todo lo que ocurre después del checkout.
+
+En una plataforma ecommerce en producción, la diferencia entre un flujo de pedidos limpio y uno roto en silencio muchas veces depende de si el manejo de webhooks es estricto, idempotente y aburrido.
+
+La documentación de Stripe es muy clara con lo fundamental:
+
+- Verificar firmas
+- Devolver una respuesta 2xx rápida
+- Esperar reintentos
+- Esperar entregas duplicadas
+
+## Por qué importan los webhooks
+
+El checkout no termina cuando el cliente hace clic en **Pay**.
+
+El navegador puede cerrarse.
+
+La red puede fallar.
+
+La redirección puede quedarse colgada.
+
+Un método de pago diferido puede liquidarse mucho después de que el usuario abandone la página.
+
+Por eso trato los webhooks como la señal duradera que actualiza el estado del pedido, lanza trabajos de fulfillment y reconcilia registros de pago dentro de mi base de datos.
+
+Nunca confío en que el cliente me diga que un pago fue exitoso.
+
+El cliente puede mostrar una página de éxito, pero solo el webhook debería mover el system of record de:
+
+```text
+pending -> paid
+pending -> failed
+```
+
+Stripe posiciona explícitamente los webhooks como el mecanismo para:
+
+- Fulfillment
+- Recibos
+- Actualizaciones de base de datos
+- Flujos post-pago
+
+## Verificación de firma
+
+Saltarse la verificación de firma crea un agujero de seguridad real.
+
+Stripe recomienda verificar cada evento usando:
+
+- El header `Stripe-Signature`
+- El cuerpo raw de la request
+- El secreto del endpoint del webhook
+
+Sin verificación, cualquiera podría enviar una request POST falsa y engañar a tu backend para marcar pedidos como pagados.
+
+El requisito del raw body atrapa a muchos developers.
+
+Stripe verifica el payload exacto que envió originalmente.
+
+Si el cuerpo de la request se parsea y reserializa antes de la verificación, pueden cambiar los espacios en blanco y el orden, haciendo que falle la validación de firma.
+
+### Next.js Route Handler
+
+```ts
+// app/api/stripe/webhook/route.ts
+
+import Stripe from "stripe";
+import { headers } from "next/headers";
+import { NextResponse } from "next/server";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-07-30.basil",
+});
+
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+export async function POST(req: Request) {
+  const signature = headers().get("stripe-signature");
+
+  if (!signature) {
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  }
+
+  const body = await req.text();
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
+  } catch {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  await handleStripeEvent(event);
+
+  return NextResponse.json({
+    received: true,
+  });
+}
+```
+
+Esta es la forma que quiero en producción:
+
+- Raw body
+- Header de firma
+- Secreto del endpoint
+- Evento verificado antes de ejecutar cualquier lógica de negocio
+
+Un error común es mezclar el webhook secret del Stripe Dashboard con el que genera Stripe CLI durante desarrollo local.
+
+Son valores distintos.
+
+## Idempotencia y entregas duplicadas
+
+Los Stripe webhooks pueden llegar más de una vez.
+
+Eso no es un edge case.
+
+Es parte del modelo de entrega.
+
+Stripe reintenta automáticamente las entregas fallidas hasta por tres días.
+
+Por eso, nunca me pregunto:
+
+> ¿Recibí este evento?
+
+En cambio me pregunto:
+
+> ¿Ya procesé este event ID?
+
+El event ID se convierte en la clave natural de deduplicación.
+
+### Registro de eventos idempotente
+
+```ts
+async function handleStripeEvent(event: Stripe.Event) {
+  const alreadyProcessed = await db.webhookEvent.findUnique({
+    where: {
+      stripeEventId: event.id,
+    },
+  });
+
+  if (alreadyProcessed) {
+    return;
+  }
+
+  await db.webhookEvent.create({
+    data: {
+      stripeEventId: event.id,
+      type: event.type,
+      processedAt: new Date(),
+    },
+  });
+
+  await processEvent(event);
+}
+```
+
+También hago idempotentes los side effects.
+
+Sin esa protección, los reintentos pueden crear:
+
+- Pedidos duplicados
+- Emails duplicados
+- Actualizaciones duplicadas de inventario
+- Solicitudes duplicadas de envío
+
+Si un evento ya fue procesado, el handler debería hacer no-op de forma segura y devolver éxito.
+
+## ¿Qué eventos realmente importan?
+
+La mayoría de los sistemas ecommerce no necesitan todos los eventos de Stripe.
+
+Normalmente empiezo con:
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `checkout.session.async_payment_failed`
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+- `charge.refunded`
+- `charge.dispute.created`
+
+Estos eventos cubren la mayoría de los flujos post-checkout sin introducir complejidad innecesaria.
+
+Para un flujo típico de compra única:
+
+### checkout.session.completed
+
+Marca el checkout como completado e inicia la creación del pedido.
+
+### payment_intent.succeeded
+
+Confirma que el pago se realizó con éxito.
+
+### payment_intent.payment_failed
+
+Marca el pago como fallido.
+
+### charge.refunded
+
+Actualiza el estado del reembolso.
+
+### charge.dispute.created
+
+Marca el pedido para revisión manual.
+
+Si entran suscripciones en la ecuación, la lista de eventos cambia bastante.
+
+Suscríbete solo a los eventos que tu modelo de negocio realmente necesita.
+
+## Comportamiento de reintentos
+
+Stripe reintenta automáticamente las entregas fallidas de webhooks.
+
+Eso significa que el endpoint del webhook debe cumplir dos requisitos:
+
+1. Responder rápido.
+2. Mover el trabajo costoso a otro lugar.
+
+El error más común es hacerlo todo de forma síncrona:
+
+- Actualizaciones de base de datos
+- Envío de emails
+- Generación de facturas
+- Integraciones de envío
+- Tracking de analytics
+
+Una sola dependencia lenta dispara reintentos.
+
+Los reintentos reproducen trabajo que ya se completó.
+
+La solución es simple:
+
+1. Registrar el evento.
+2. Encolar el trabajo downstream.
+3. Devolver una respuesta exitosa.
+
+## Handler seguro para producción
+
+```ts
+async function processEvent(event: Stripe.Event) {
+  switch (event.type) {
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      await orders.markCheckoutComplete(
+        session.id,
+        session.payment_intent as string,
+      );
+
+      await queue.publish("order.paid", {
+        orderId: session.metadata?.orderId,
+        stripeEventId: event.id,
+      });
+
+      break;
+    }
+
+    case "payment_intent.payment_failed": {
+      const intent = event.data.object as Stripe.PaymentIntent;
+
+      await payments.markFailed(
+        intent.id,
+        intent.last_payment_error?.message ?? null,
+      );
+
+      break;
+    }
+
+    case "charge.refunded": {
+      const charge = event.data.object as Stripe.Charge;
+
+      await refunds.recordRefund(charge.id);
+
+      break;
+    }
+
+    default:
+      return;
+  }
+}
+```
+
+Mantengo los webhook handlers intencionalmente acotados.
+
+Su trabajo es traducir eventos de Stripe a domain events o transiciones de estado.
+
+Nada más.
+
+## Modos de fallo comunes
+
+### Confiar en la redirección
+
+La redirección del navegador es una señal de UX.
+
+No es una garantía de pago.
+
+Los usuarios pueden cerrar pestañas antes de que la redirección termine.
+
+El webhook sigue siendo la fuente de verdad.
+
+### Usar el body parser equivocado
+
+Si el framework parsea el cuerpo de la request antes de la verificación, las comprobaciones de firma de Stripe fallan.
+
+Verifica siempre contra el payload raw.
+
+### Hacer demasiado de forma síncrona
+
+Las respuestas lentas del webhook disparan reintentos.
+
+Los reintentos aumentan el riesgo de procesamiento duplicado.
+
+Reconoce primero.
+
+Procesa de forma asíncrona.
+
+### No almacenar los event IDs procesados
+
+Sin deduplicación:
+
+- Se duplican pedidos
+- Se duplican emails
+- Se duplican envíos
+- Se duplican cambios de suscripción
+
+Estos bugs son costosos porque aparecen al azar y son difíciles de reproducir.
+
+## Qué almaceno
+
+Normalmente persisto tres capas de estado:
+
+1. Stripe event ID y tipo
+2. Registro interno de pago o pedido
+3. Marcador de procesado
+
+Eso me da:
+
+- Un rastro de auditoría
+- Capacidad segura de replay
+- Deduplicación confiable
+
+Si alguna vez necesito reejecutar eventos perdidos, el event log hace que el proceso sea seguro y predecible.
+
+## Reflexiones finales
+
+Los Stripe webhooks solo son confiables cuando se tratan como infraestructura y no como glue code.
+
+Mis reglas son simples:
+
+- Verifica cada firma
+- Usa el raw request body
+- Procesa eventos de forma idempotente
+- Mantén handlers pequeños
+- Suscríbete solo a tipos de eventos relevantes
+- Mueve el trabajo de larga duración a colas
+
+Si esos fundamentos están en su sitio, el estado de pagos se mantiene correcto incluso cuando navegadores, redes y reintentos de Stripe se vuelven caóticos.
+
+## Referencias
+
+1. [Resolver errores de verificación de firma de webhooks](https://docs.stripe.com/webhooks/signature)
+2. [Procesar eventos de webhook no entregados](https://docs.stripe.com/webhooks/process-undelivered-events)
+3. [Tipos de eventos](https://docs.stripe.com/api/events/types)
+4. [Configurar y desplegar un webhook](https://docs.stripe.com/webhooks/quickstart)
+5. [Manejar eventos de pago](https://docs.stripe.com/webhooks/handling-payment-events)

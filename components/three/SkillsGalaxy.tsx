@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslations } from "next-intl";
 import { useFrame } from "@react-three/fiber";
 import {
   Billboard,
@@ -92,6 +93,7 @@ function SkillLabel({
   position: THREE.Vector3;
   onHoverChange: (hovered: boolean) => void;
 }) {
+  const t = useTranslations("skills");
   const [hovered, setHovered] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
   const iconUrl = SKILL_ICONS[skill.name];
@@ -179,7 +181,7 @@ function SkillLabel({
                 <p className="text-base font-bold text-white">{skill.name}</p>
                 <p className="mt-1 font-mono text-xs text-cyan-400">{skill.level}</p>
                 <p className="mt-1 font-mono text-xs text-muted-foreground">
-                  {skill.years} {skill.years === 1 ? "year" : "years"} exp.
+                  {t("experienceYears", { years: skill.years })}
                 </p>
               </div>
             </Html>
@@ -412,6 +414,7 @@ function SolarSystemContent({
   planets: PlanetData[];
   pauseMotion: boolean;
 }) {
+  const t = useTranslations("skills");
   const auraRef = useRef<THREE.Mesh>(null);
   const controlsRef = useRef<any>(null);
   const focusTarget = useRef(new THREE.Vector3(0, 0, 0));
@@ -550,7 +553,7 @@ function SolarSystemContent({
             anchorX="center"
             anchorY="middle"
           >
-            Skills
+            {t("galaxyCenterLabel")}
           </Text>
         </Billboard>
       </group>

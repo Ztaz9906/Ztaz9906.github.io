@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BlogDiagramShell, useDiagramContainer } from "./_shared";
 
 function Node({
@@ -64,6 +65,7 @@ function Node({
 }
 
 export function NextjsCQRSDiagram() {
+  const t = useTranslations("blog");
   const container = useDiagramContainer();
 
   return (
@@ -71,7 +73,7 @@ export function NextjsCQRSDiagram() {
       <svg
         viewBox="0 0 900 450"
         className="h-full w-full font-mono"
-        aria-label="CQRS in Next.js with separate command and query lanes"
+        aria-label={t("diagramNextCqrsAriaLabel")}
       >
         <defs>
           <marker
@@ -128,7 +130,7 @@ export function NextjsCQRSDiagram() {
           fill="var(--color-blue)"
           fontSize="11"
         >
-          Command lane
+          {t("diagramNextCqrsCommandLane")}
         </text>
         <text
           className="diagram-label"
@@ -137,46 +139,46 @@ export function NextjsCQRSDiagram() {
           fill="var(--color-purple)"
           fontSize="11"
         >
-          Query lane
+          {t("diagramNextCqrsQueryLane")}
         </text>
 
-        <Node x={56} y={196} width={128} title="Client" subtitle="user intent" color="cyan" />
+        <Node x={56} y={196} width={128} title={t("diagramNextCqrsClient")} subtitle={t("diagramNextCqrsUserIntent")} color="cyan" />
         <Node
           x={228}
           y={118}
           width={180}
-          title="Server Action"
-          subtitle="Command entrypoint"
+          title={t("diagramNextCqrsServerAction")}
+          subtitle={t("diagramNextCqrsCommandEntrypoint")}
           color="blue"
         />
         <Node
           x={444}
           y={118}
           width={194}
-          title="Write Model / Domain"
-          subtitle="aggregates + rules"
+          title={t("diagramNextCqrsWriteModelDomain")}
+          subtitle={t("diagramNextCqrsAggregatesRules")}
           color="blue"
         />
-        <Node x={692} y={118} width={130} title="Database" subtitle="writes" color="blue" />
+        <Node x={692} y={118} width={130} title={t("diagramNextCqrsDatabase")} subtitle={t("diagramNextCqrsWrites")} color="blue" />
 
         <Node
           x={214}
           y={274}
           width={236}
-          title="Server Component / Route Handler"
-          titleLines={["Server Component", "/ Route Handler"]}
-          subtitle="Query entrypoint"
+          title={t("diagramNextCqrsServerComponentRouteHandler")}
+          titleLines={[t("diagramNextCqrsServerComponent"), t("diagramNextCqrsRouteHandler")]}
+          subtitle={t("diagramNextCqrsQueryEntrypoint")}
           color="purple"
         />
         <Node
           x={490}
           y={274}
           width={144}
-          title="Read Model"
-          subtitle="projection"
+          title={t("diagramNextCqrsReadModel")}
+          subtitle={t("diagramNextCqrsProjection")}
           color="purple"
         />
-        <Node x={692} y={274} width={130} title="Database" subtitle="reads" color="purple" />
+        <Node x={692} y={274} width={130} title={t("diagramNextCqrsDatabase")} subtitle={t("diagramNextCqrsReads")} color="purple" />
 
         {[
           "M 184 214 C 206 182, 214 160, 228 147",
@@ -222,7 +224,7 @@ export function NextjsCQRSDiagram() {
           fill="var(--color-blue)"
           fontSize="10"
         >
-          Command
+          {t("diagramNextCqrsCommand")}
         </text>
         <text
           className="diagram-label"
@@ -232,7 +234,7 @@ export function NextjsCQRSDiagram() {
           fill="var(--color-purple)"
           fontSize="10"
         >
-          Query
+          {t("diagramNextCqrsQuery")}
         </text>
       </svg>
     </BlogDiagramShell>

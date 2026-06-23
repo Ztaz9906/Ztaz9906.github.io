@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 export function ScreenshotsGallery({ images }: { images: string[] }) {
+  const t = useTranslations("common")
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export function ScreenshotsGallery({ images }: { images: string[] }) {
           >
             <Image
               src={src}
-              alt={`Screenshot ${i + 1}`}
+              alt={t("screenshotsImageAlt", { index: i + 1 })}
               fill
               className="object-cover transition-opacity group-hover:opacity-90"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -47,7 +48,6 @@ export function ScreenshotsGallery({ images }: { images: string[] }) {
         ))}
       </div>
 
-      {/* Lightbox Modal */}
       {selectedImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4 backdrop-blur-sm"
@@ -59,16 +59,16 @@ export function ScreenshotsGallery({ images }: { images: string[] }) {
             className="absolute right-6 top-6 z-50 rounded-full bg-card p-2 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
             <X className="size-6" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("close")}</span>
           </button>
-          
+
           <div
             className="relative h-full max-h-[85vh] w-full max-w-7xl overflow-hidden rounded-xl border border-border shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <Image
               src={selectedImage}
-              alt="Enlarged screenshot"
+              alt={t("screenshotsEnlargedAlt")}
               fill
               className="object-contain"
               sizes="100vw"

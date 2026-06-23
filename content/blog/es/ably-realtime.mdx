@@ -1,0 +1,298 @@
+---
+title: "Funciones en tiempo real con Ably en Next.js"
+date: "2025-05-10"
+excerpt: "Una guía práctica para construir funciones en tiempo real en Next.js con Ably para tracking en vivo, presencia y notificaciones de baja latencia sin gestionar infraestructura WebSocket directamente."
+tags: ["ably", "nextjs", "tiempo-real", "web-sockets", "arquitectura-event-driven"]
+coverImage: "/blog/realtime-features-with-ably/cover.jpg"
+---
+
+---
+
+# Funciones en tiempo real con Ably en Next.js
+
+Construí una plataforma de grúas donde conductores, despachadores y clientes necesitaban exactamente lo mismo al mismo tiempo: actualizaciones en vivo y confiables. Cuando el producto superó los 1,000+ usuarios concurrentes, la parte difícil ya no era enviar eventos: era mantener estables las conexiones, preservar el orden de los mensajes y asegurar que la UI siguiera siendo precisa cuando la red se comportaba mal.
+
+Ably encajó muy bien en ese problema porque sus canales, presencia, manejo de reconexión, orden de mensajes y soporte para SSE me permitieron enfocarme en la lógica de producto en lugar de operar yo mismo la infraestructura de tiempo real.
+
+## Por qué el tiempo real se vuelve desordenado
+
+A pequeña escala, el tiempo real parece fácil:
+
+- Publicar un evento
+- Mostrar un toast
+- Mover un marcador en un mapa
+
+A escala de producción, los modos de fallo aparecen rápido:
+
+- Actualizaciones duplicadas
+- Ubicaciones de conductores desactualizadas
+- Usuarios que parecen estar en línea pero en realidad están desconectados
+- Fanout de notificaciones que se ralentiza a medida que crece el número de conexiones
+
+La documentación de Ably deja explícito un detalle operativo importante: los minutos de conexión se facturan por cada conexión realtime abierta, y las conexiones concurrentes son una preocupación de escalado de primer nivel.
+
+Por eso trato el realtime como un problema de sistemas, no solo como una funcionalidad de frontend.
+
+La promesa de cara al usuario es simple:
+
+> Ver dónde está el conductor ahora mismo.
+
+La implementación debe manejar reconexiones, permisos, orden de entrega y la realidad de que miles de clientes pueden estar conectados a canales simultáneamente.
+
+## Canales y Pub/Sub
+
+Los canales son el bloque base en el que confío primero.
+
+Los publishers envían mensajes a un canal.
+
+Los subscribers reciben mensajes de un canal.
+
+Varios canales pueden compartir una sola conexión.
+
+Para una plataforma de grúas, normalmente separo los canales por responsabilidad:
+
+```text
+dispatch:job:{jobId}
+presence:dispatch
+notifications:user:{userId}
+admin:ops
+```
+
+Esta partición importa porque:
+
+- Mantiene el tráfico enfocado
+- Hace que la intención sea evidente
+- Simplifica la autorización
+- Reduce el fanout innecesario
+
+El propio nombre del canal pasa a formar parte del lenguaje del dominio.
+
+### Un flujo simple de publicación
+
+```ts
+// app/api/jobs/[jobId]/location/route.ts
+
+import { NextResponse } from "next/server";
+import Ably from "ably";
+
+const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ jobId: string }> },
+) {
+  const { jobId } = await params;
+  const body = await req.json();
+
+  await ably.channels.get(`dispatch:job:${jobId}`).publish("location.updated", {
+    jobId,
+    lat: body.lat,
+    lng: body.lng,
+    speed: body.speed,
+    ts: Date.now(),
+  });
+
+  return NextResponse.json({ ok: true });
+}
+```
+
+Este es el tipo de write path que prefiero:
+
+1. El Route Handler recibe input confiable.
+2. El evento se publica.
+3. La request termina.
+
+El cliente nunca recibe credenciales privilegiadas, y el nombre del canal pasa a formar parte del modelo de dominio.
+
+## Presencia y estado en línea
+
+La presencia es la funcionalidad que uso cuando necesito responder preguntas como:
+
+- ¿Quién está en línea?
+- ¿Quién está activo?
+- ¿Quién está participando en este flujo?
+
+En una plataforma de despacho, puedo usar presencia para mostrar conductores y despachadores activos, manteniendo el estado autoritativo dentro de la base de datos del dominio.
+
+La presencia debe tratarse como una señal de actividad en vivo, no como estado de negocio persistente.
+
+### Presencia en Next.js
+
+```tsx
+"use client";
+
+import { useEffect } from "react";
+import Ably from "ably";
+
+const client = new Ably.Realtime({
+  authUrl: "/api/ably-token",
+});
+
+export function DispatchPresence({ dispatchId }: { dispatchId: string }) {
+  useEffect(() => {
+    const channel = client.channels.get(`presence:dispatch:${dispatchId}`);
+
+    channel.presence.enter({
+      role: "dispatcher",
+    });
+
+    return () => {
+      channel.presence.leave();
+    };
+  }, [dispatchId]);
+
+  return null;
+}
+```
+
+Mantengo el estado de presencia reducido y efímero.
+
+Si necesito datos persistentes de "última vez visto", los guardo por separado.
+
+Si necesito actividad en vivo, presencia es la abstracción correcta.
+
+## Reconexiones y orden
+
+El manejo de reconexiones es donde la infraestructura realtime gestionada se vuelve realmente valiosa.
+
+Ably reconecta clientes automáticamente, preserva el estado de la conexión cuando es posible y vuelve a adjuntar canales tras interrupciones.
+
+Aun así, siempre incluyo timestamps o números de secuencia en los payloads realtime.
+
+```ts
+let lastSeq = 0;
+
+function applyLocationUpdate(event: { seq: number; lat: number; lng: number }) {
+  if (event.seq <= lastSeq) return;
+
+  lastSeq = event.seq;
+
+  updateMarker(event.lat, event.lng);
+}
+```
+
+Esta pequeña guarda evita:
+
+- Actualizaciones duplicadas
+- Rollback de ubicación
+- Parpadeo en el mapa
+- Artefactos por reconexión
+
+## SSE, WebSockets y Ably
+
+Pienso en SSE, WebSockets y Ably como herramientas distintas, no como tecnologías que compiten entre sí.
+
+### Usa SSE cuando:
+
+- La comunicación es solo servidor a cliente
+- Necesitas notificaciones
+- Necesitas actualizaciones de progreso
+- La simplicidad importa
+
+### Usa WebSockets cuando:
+
+- Necesitas comunicación bidireccional personalizada
+- Eres dueño de la infraestructura
+- Aceptas la complejidad operativa
+
+### Usa Ably cuando:
+
+- Quieres funcionalidades realtime listas para producción
+- Necesitas pub/sub
+- Necesitas presencia
+- Necesitas manejo de reconexión
+- Necesitas escalabilidad
+
+Para la mayoría de los equipos de producto, el realtime gestionado es la ruta más rápida a producción.
+
+## Qué se rompe a escala
+
+La capa de transporte rara vez es lo primero que falla.
+
+Normalmente, lo que se rompe primero es la lógica de aplicación alrededor.
+
+### Trabajo excesivo por evento
+
+Una actualización de ubicación no debería disparar:
+
+- Múltiples escrituras en base de datos
+- Redibujados completos del mapa
+- Cadenas costosas de notificaciones
+
+### Disciplina de conexiones
+
+Cada conexión realtime abierta cuenta.
+
+Pestañas sin uso, sesiones duplicadas y dashboards olvidados se acumulan rápido.
+
+### Mal diseño de canales
+
+Un canal gigante implica:
+
+- Cada subscriber recibe todos los eventos
+- Los navegadores desperdician ancho de banda filtrando mensajes
+
+Separar canales temprano mantiene el fanout dirigido y predecible.
+
+## Notificaciones que se sienten instantáneas
+
+Los sistemas de notificaciones más rápidos que he construido tratan las notificaciones como eventos, no como trabajo síncrono.
+
+En lugar de esperar a que terminen operaciones no relacionadas:
+
+1. Publica un evento.
+2. Deja que los subscribers reaccionen.
+3. Actualiza la UI inmediatamente.
+
+También evito enviar payloads grandes por canales realtime.
+
+Un evento normalmente debería contener:
+
+- ID de la entidad
+- Versión o número de secuencia
+- Estado mínimo necesario para refrescar la UI
+
+## Cómo lo conecto en Next.js
+
+Mi setup es intencionalmente simple:
+
+- Server Actions o Route Handlers publican eventos.
+- Un endpoint de tokens emite credenciales de Ably con las capabilities adecuadas.
+- Los componentes cliente se suscriben solo a los canales que necesitan.
+- La presencia se limita a actividad en vivo.
+- Los números de secuencia protegen la UI frente a actualizaciones obsoletas.
+
+Esto me da una separación limpia entre la lógica de negocio y las preocupaciones del transporte.
+
+La página renderiza su estado inicial en el servidor, y Ably monta las actualizaciones realtime encima.
+
+## Conclusiones prácticas
+
+Ably funciona bien cuando necesito funcionalidades realtime sin hacerme cargo de todo el ciclo de vida de WebSockets.
+
+Los canales proporcionan la columna vertebral pub/sub.
+
+La presencia aporta señales de actividad en vivo.
+
+El manejo de reconexión elimina muchos fallos de edge case.
+
+SSE sigue siendo útil cuando basta con un stream simple de servidor a navegador.
+
+Los mayores riesgos de escalado son:
+
+- Canales demasiado amplios
+- Fanout ineficiente
+- Tratar el estado de conexión como estado de negocio persistente
+
+## Referencias
+
+1. [Pub/Sub | Conceptos de canales](https://ably.com/docs/channels)
+2. [Cómo implementar Pub/Sub](https://ably.com/docs/how-to/pub-sub)
+3. [Presencia](https://ably.com/docs/presence-occupancy/presence)
+4. [Capabilities](https://ably.com/docs/auth/capabilities)
+5. [Resumen de precios](https://ably.com/docs/platform/pricing)
+6. [Precios de Ably](https://ably.com/pricing)
+7. [Mensajes](https://ably.com/docs/api/realtime-sdk/messages)
+8. [Recuperación del estado de conexión](https://faqs.ably.com/connection-state-recovery)
+9. [Soporte para SSE](https://ably.com/docs/protocols/sse)
+10. [Server-Sent Events y Ably](https://ably.com/blog/server-sent-events-and-ably)

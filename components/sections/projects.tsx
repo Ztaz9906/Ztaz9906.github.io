@@ -1,14 +1,17 @@
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
+import { getTranslations } from "next-intl/server"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SectionHeading } from "@/components/section-heading"
 import { Reveal } from "@/components/reveal"
-import { PROJECTS } from "@/lib/data/projects"
+import { getAllProjects, type Locale } from "@/lib/data/projects"
 import { cn } from "@/lib/utils"
 
-export function Projects() {
+export async function Projects({ locale }: { locale: Locale }) {
+  const t = await getTranslations("projects")
+  const projects = getAllProjects(locale)
   return (
     <section
       id="projects"
@@ -16,12 +19,12 @@ export function Projects() {
     >
       <SectionHeading
         eyebrow="// 03"
-        title="Selected Projects"
-        description="Products and platforms I've designed and engineered end to end."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="mt-12 grid gap-5 sm:grid-cols-2">
-        {PROJECTS.map((project, i) => (
+        {projects.map((project, i) => (
           <Reveal
             key={project.slug}
             delay={(i % 2) * 80}
@@ -67,8 +70,8 @@ export function Projects() {
               {project.hasCaseStudy && (
                 <div className="mt-6 flex items-center gap-2 pt-1">
                   <Button asChild variant="outline" size="sm" className="flex-1">
-                    <Link href={`/projects/${project.slug}`}>
-                      Case Study
+                    <Link href={`/${locale}/projects/${project.slug}`}>
+                      {t("ctaCaseStudy")}
                       <ArrowUpRight className="size-4" />
                     </Link>
                   </Button>

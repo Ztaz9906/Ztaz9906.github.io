@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BlogDiagramShell, useDiagramContainer } from "./_shared";
 
 function ProcessBox({
@@ -84,6 +85,7 @@ function Decision({ cx, cy, label }: { cx: number; cy: number; label: string }) 
 }
 
 export function SupabaseRLSDiagram() {
+  const t = useTranslations("blog");
   const container = useDiagramContainer();
 
   return (
@@ -91,7 +93,7 @@ export function SupabaseRLSDiagram() {
       <svg
         viewBox="0 0 900 450"
         className="h-full w-full font-mono"
-        aria-label="Supabase row level security flow from JWT to policy check"
+        aria-label={t("diagramRlsAriaLabel")}
       >
         <defs>
           <marker
@@ -122,26 +124,26 @@ export function SupabaseRLSDiagram() {
           x={42}
           y={194}
           width={146}
-          title="Client Request"
-          subtitle="JWT attached"
+          title={t("diagramRlsClientRequest")}
+          subtitle={t("diagramRlsJwtAttached")}
           color="cyan"
         />
-        <ProcessBox x={224} y={194} width={134} title="Supabase Auth" />
-        <ProcessBox x={394} y={194} width={132} title="Postgres Query" />
-        <Decision cx={606} cy={221} label="RLS Policy Check" />
+        <ProcessBox x={224} y={194} width={134} title={t("diagramRlsSupabaseAuth")} />
+        <ProcessBox x={394} y={194} width={132} title={t("diagramRlsPostgresQuery")} />
+        <Decision cx={606} cy={221} label={t("diagramRlsPolicyCheck")} />
         <ProcessBox
           x={698}
           y={104}
           width={148}
-          title="Access Denied"
-          subtitle="empty result"
+          title={t("diagramRlsAccessDenied")}
+          subtitle={t("diagramRlsEmptyResult")}
           color="purple"
         />
         <ProcessBox
           x={670}
           y={286}
           width={176}
-          title="Filtered Rows Returned"
+          title={t("diagramRlsFilteredRowsReturned")}
           color="blue"
         />
 
@@ -191,7 +193,7 @@ export function SupabaseRLSDiagram() {
           fill="var(--color-muted-foreground)"
           fontSize="9"
         >
-          denied
+          {t("diagramRlsDenied")}
         </text>
         <text
           className="diagram-label"
@@ -200,7 +202,7 @@ export function SupabaseRLSDiagram() {
           fill="var(--color-blue)"
           fontSize="9"
         >
-          allowed
+          {t("diagramRlsAllowed")}
         </text>
       </svg>
     </BlogDiagramShell>

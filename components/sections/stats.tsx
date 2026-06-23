@@ -1,7 +1,15 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { STATS } from "@/lib/data"
+
+const STAT_LABEL_KEYS: Record<string, string> = {
+  "years experience": "statsYearsExperience",
+  "projects shipped": "statsProjectsShipped",
+  technologies: "statsTechnologies",
+  "concurrent users supported": "statsConcurrentUsersSupported",
+}
 
 function useCountUp(target: number, active: boolean, duration = 1600) {
   const [value, setValue] = React.useState(0)
@@ -58,6 +66,7 @@ function StatItem({
 }
 
 export function Stats() {
+  const t = useTranslations("common")
   const ref = React.useRef<HTMLDivElement | null>(null)
   const [active, setActive] = React.useState(false)
 
@@ -84,7 +93,12 @@ export function Stats() {
         className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-16 sm:px-6 lg:grid-cols-4 lg:py-20"
       >
         {STATS.map((stat) => (
-          <StatItem key={stat.label} {...stat} active={active} />
+          <StatItem
+            key={stat.label}
+            {...stat}
+            label={t(STAT_LABEL_KEYS[stat.label])}
+            active={active}
+          />
         ))}
       </div>
     </section>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { SectionHeading } from "@/components/section-heading"
 import { DDDLayersDiagram } from "./DDDLayersDiagram"
 import { CQRSDiagram } from "./CQRSDiagram"
@@ -8,27 +9,26 @@ import { EventDrivenDiagram } from "./EventDrivenDiagram"
 import { cn } from "@/lib/utils"
 import { Reveal } from "@/components/reveal"
 
-const DIAGRAMS = [
-  { id: "ddd", label: "Domain-Driven Design" },
-  { id: "cqrs", label: "CQRS" },
-  { id: "event", label: "Event-Driven" },
-] as const
-
 export function ArchitectureSection() {
-  const [active, setActive] = useState<typeof DIAGRAMS[number]["id"]>("ddd")
+  const t = useTranslations("common")
+  const diagrams = [
+    { id: "ddd", label: t("architectureTabDdd") },
+    { id: "cqrs", label: t("architectureTabCqrs") },
+    { id: "event", label: t("architectureTabEventDriven") },
+  ] as const
+  const [active, setActive] = useState<(typeof diagrams)[number]["id"]>("ddd")
 
   return (
     <section id="architecture" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="// 04"
-        title="Architecture Patterns"
-        description="I build systems that scale cleanly by enforcing strong boundaries and separating concerns."
+        title={t("architectureTitle")}
+        description={t("architectureDescription")}
       />
 
       <Reveal delay={100} className="mt-12">
-        {/* Tabs */}
         <div className="mb-8 flex flex-wrap gap-2">
-          {DIAGRAMS.map((tab) => (
+          {diagrams.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActive(tab.id)}
@@ -44,7 +44,6 @@ export function ArchitectureSection() {
           ))}
         </div>
 
-        {/* Diagram container */}
         <div className="relative overflow-hidden rounded-xl bg-card/10 shadow-2xl shadow-black/40">
           <div className={cn("transition-opacity duration-500", active === "ddd" ? "opacity-100" : "hidden opacity-0")}>
             {active === "ddd" && <DDDLayersDiagram />}

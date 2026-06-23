@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BlogDiagramShell, useDiagramContainer } from "./_shared";
 
 function ProcessBox({
@@ -85,6 +86,7 @@ function Decision({
 }
 
 export function StripeWebhookFlowDiagram() {
+  const t = useTranslations("blog");
   const container = useDiagramContainer();
 
   return (
@@ -92,7 +94,7 @@ export function StripeWebhookFlowDiagram() {
       <svg
         viewBox="0 0 900 450"
         className="h-full w-full font-mono"
-        aria-label="Stripe webhook flow with signature verification and idempotency decisions"
+        aria-label={t("diagramStripeAriaLabel")}
       >
         <defs>
           <marker
@@ -119,15 +121,15 @@ export function StripeWebhookFlowDiagram() {
           </marker>
         </defs>
 
-        <ProcessBox x={42} y={194} width={108} title="Stripe Event" color="cyan" />
-        <ProcessBox x={182} y={194} width={136} title="Webhook Endpoint" />
-        <Decision cx={392} cy={217} label="Verify Signature" />
-        <ProcessBox x={456} y={194} width={138} title="Idempotency Check" color="purple" />
-        <ProcessBox x={630} y={194} width={122} title="Process Event" />
-        <ProcessBox x={778} y={194} width={86} title="200 OK" color="cyan" />
+        <ProcessBox x={42} y={194} width={108} title={t("diagramStripeEvent")} color="cyan" />
+        <ProcessBox x={182} y={194} width={136} title={t("diagramStripeWebhookEndpoint")} />
+        <Decision cx={392} cy={217} label={t("diagramStripeVerifySignature")} />
+        <ProcessBox x={456} y={194} width={138} title={t("diagramStripeIdempotencyCheck")} color="purple" />
+        <ProcessBox x={630} y={194} width={122} title={t("diagramStripeProcessEvent")} />
+        <ProcessBox x={778} y={194} width={86} title={t("diagramStripe200Ok")} color="cyan" />
 
-        <ProcessBox x={324} y={72} width={110} title="Reject 400" color="purple" />
-        <ProcessBox x={468} y={334} width={82} title="Skip" color="purple" />
+        <ProcessBox x={324} y={72} width={110} title={t("diagramStripeReject400")} color="purple" />
+        <ProcessBox x={468} y={334} width={82} title={t("diagramStripeSkip")} color="purple" />
 
         {[
           "M 150 217 L 182 217",
@@ -177,7 +179,7 @@ export function StripeWebhookFlowDiagram() {
           fill="var(--color-blue)"
           fontSize="9"
         >
-          valid
+          {t("diagramStripeValid")}
         </text>
         <text
           className="diagram-label"
@@ -186,7 +188,7 @@ export function StripeWebhookFlowDiagram() {
           fill="var(--color-muted-foreground)"
           fontSize="9"
         >
-          invalid
+          {t("diagramStripeInvalid")}
         </text>
         <text
           className="diagram-label"
@@ -195,7 +197,7 @@ export function StripeWebhookFlowDiagram() {
           fill="var(--color-muted-foreground)"
           fontSize="9"
         >
-          already processed
+          {t("diagramStripeAlreadyProcessed")}
         </text>
         <text
           className="diagram-label"
@@ -204,7 +206,7 @@ export function StripeWebhookFlowDiagram() {
           fill="var(--color-blue)"
           fontSize="9"
         >
-          new
+          {t("diagramStripeNew")}
         </text>
       </svg>
     </BlogDiagramShell>

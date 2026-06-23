@@ -1,0 +1,180 @@
+---
+title: "Construyendo sistemas escalables con Domain-Driven Design"
+date: "2026-02-15"
+excerpt: "Una guía práctica y con criterio para usar Domain-Driven Design al construir sistemas web escalables con límites claros, modelos de dominio sólidos y menos concesiones dictadas por el framework."
+tags:
+  - domain-driven-design
+  - cqrs
+  - arquitectura-event-driven
+  - nextjs
+  - django
+coverImage: "/blog/building-scalable-systems-with-ddd/cover.jpg"
+---
+
+He visto suficientes sistemas en producción como para saber esto: la parte difícil normalmente no es elegir un framework, sino mantener el modelo de software alineado con el negocio a medida que crece el codebase. Domain-Driven Design ayuda cuando el producto es lo bastante complejo como para que “solo agrega otro endpoint CRUD” deje de ser una estrategia y empiece a ser una carga. DDD no es una religión, aunque sí es un conjunto de herramientas para modelar comportamiento real de negocio con suficiente estructura como para mantener al equipo cuerdo.
+
+## Por qué recurro a DDD
+
+Recurro a DDD cuando el lenguaje del negocio ya es confuso, se solapa o está en disputa. Si la misma palabra significa cosas distintas en la plataforma administrativa, la plataforma e-commerce y el sistema de inventario, eso es un problema de modelado, no de naming. DDD me da una forma de hacer explícitas esas diferencias mediante bounded contexts, de modo que cada parte del sistema pueda tener su propio modelo sin fingir que toda la empresa habla un único lenguaje perfecto.
+
+En la práctica, eso importa más que el estilo de código. Una estructura de carpetas limpia no rescata un modelo de dominio que mezcla reglas de checkout, lógica de almacén y flujos de soporte al cliente en el mismo sitio. DDD me da una mentalidad de boundary first: define la capacidad de negocio, nombra el lenguaje y solo después decide cómo representarlo en código.
+
+## Bounded contexts primero
+
+Los bounded contexts son el concepto más importante de DDD en aplicaciones reales porque frenan la contaminación del modelo. Martin Fowler los describe como la forma en que DDD divide un sistema grande en modelos separados con relaciones explícitas entre ellos. En una empresa real, “order”, “product” y “customer” casi siempre significan cosas ligeramente distintas según quién pregunte.
+
+Uso bounded contexts para mantener esos significados separados. Por ejemplo, un contexto de inventario se preocupa por movimientos de stock, reservas y reglas de reposición, mientras que un contexto e-commerce se preocupa por precios, carts, promociones y checkout. La tentación de compartir base de datos es fuerte, pero la tentación de compartir modelo es peor; una vez que todos los equipos dependen del mismo object graph, el modelo se vuelve político en lugar de útil.
+
+La prueba útil es simple: si dos partes del sistema cambian por razones de negocio distintas, probablemente no pertenecen al mismo contexto. Si tienen vocabulario distinto, invariantes distintas o un ritmo de releases diferente, las trato como modelos separados incluso si viven en el mismo repo. Ese enfoque escala mejor que intentar normalizar todo el negocio en un único diagrama de “clean architecture”.
+
+## Entidades, value objects y aggregates
+
+La distinción entre entity/value object/aggregate sigue valiendo la pena, pero solo si ayuda a proteger las reglas de negocio. El resumen de Fowler sobre DDD destaca la clasificación de Evans entre entities, value objects, services y el patrón aggregate como piezas base. La idea no es la taxonomía; la idea es decidir dónde importa la identidad, dónde ayuda la inmutabilidad y dónde hay que reforzar consistencia.
+
+Yo lo pienso así:
+
+- **Entity**: tiene identidad y ciclo de vida. Un Product, Order o Warehouse es una entity cuando al negocio le importa que siga siendo la misma cosa a lo largo del tiempo, aunque cambien sus atributos.
+- **Value object**: se define por sus atributos, no por identidad. Money, EmailAddress o ShippingAddress normalmente deberían ser inmutables y reemplazables como un todo.
+- **Aggregate**: es un límite de consistencia. Agrupa entities y value objects que deben cambiar juntos bajo una sola raíz, y limita lo que puede mutarse directamente.
+
+El error que veo más a menudo es modelar todo como entity porque los IDs resultan familiares. Eso suele producir un modelo anémico lleno de setters y validaciones dispersas entre serializers, formularios y views. Un mejor enfoque es mover las invariantes al objeto de dominio que realmente es dueño de ellas.
+
+## Un ejemplo en TypeScript
+
+En Next.js y TypeScript, mantengo el modelo de dominio libre de framework para poder testearlo sin React, HTTP o la capa de base de datos. Eso me da un modelo que puedo usar desde una server action, un route handler, un consumidor de colas o un script de CLI sin reescribir la lógica central. Next.js soporta traer datos directamente en Server Components, lo que encaja muy bien con esta separación, mientras que el operador `satisfies` de TypeScript ayuda a mantener contratos tipados estrictos sin tirar la inferencia por la borda.
+
+```typescript
+// domain/order.ts
+export class Money {
+  constructor(
+    public readonly amount: number,
+    public readonly currency: string,
+  ) {
+    if (amount < 0) throw new Error("Money cannot be negative");
+    if (!currency) throw new Error("Currency is required");
+  }
+
+  add(other: Money): Money {
+    if (other.currency !== this.currency) {
+      throw new Error("Currency mismatch");
+    }
+    return new Money(this.amount + other.amount, this.currency);
+  }
+}
+
+export class OrderLine {
+  constructor(
+    public readonly sku: string,
+    public readonly quantity: number,
+    public readonly unitPrice: Money,
+  ) {
+    if (quantity <= 0) throw new Error("Quantity must be positive");
+  }
+
+  subtotal(): Money {
+    return new Money(
+      this.unitPrice.amount * this.quantity,
+      this.unitPrice.currency,
+    );
+  }
+}
+
+export class Order {
+  private constructor(
+    public readonly id: string,
+    private lines: OrderLine[],
+    public status: "draft" | "submitted",
+  ) {}
+
+  static create(id: string): Order {
+    return new Order(id, [], "draft");
+  }
+
+  addLine(line: OrderLine) {
+    if (this.status !== "draft") throw new Error("Order is locked");
+    this.lines.push(line);
+  }
+
+  submit() {
+    if (this.lines.length === 0)
+      throw new Error("Cannot submit an empty order");
+    this.status = "submitted";
+  }
+
+  total(): Money {
+    return this.lines.reduce(
+      (sum, line) => sum.add(line.subtotal()),
+      new Money(0, this.lines[0]?.unitPrice.currency ?? "USD"),
+    );
+  }
+}
+```
+
+Ese estilo es intencionalmente aburrido. Me da un objeto de dominio con reglas, no una bolsa de datos con opiniones externalizadas al framework. La capa de dominio se convierte en un centro estable, mientras los adapters a su alrededor pueden cambiar a medida que Next.js, Django, las colas y las bases de datos evolucionan.
+
+## Mantener el dominio puro
+
+Mi regla es simple: la capa de dominio no debería saber si la invoca una API route, un worker de Celery, un formulario en el navegador o un background job. Las preocupaciones de infraestructura pertenecen fuera del dominio, y la capa de aplicación debe orquestar el caso de uso sin incrustar persistencia ni lógica de transporte dentro de las reglas de negocio. Esa separación es la diferencia entre un modelo que sobrevive refactors y uno que hay que rehacer cada vez que cambia el stack.
+
+En Django, eso significa que evito empujar lógica de negocio a views o signals solo porque sea conveniente. En Next.js, eso significa que mantengo finos los server components y route handlers, usándolos para cargar datos y llamar a servicios de aplicación en lugar de incrustar políticas directamente en la capa de UI. La documentación actual de Next.js soporta explícitamente el fetching en Server Components, lo que facilita mantener el acceso a datos cerca del borde sin contaminar el dominio.
+
+Un buen application service se lee como un caso de uso:
+
+```typescript
+type SubmitOrderInput = {
+  orderId: string;
+};
+
+export async function submitOrder(input: SubmitOrderInput) {
+  const order = await orderRepository.getById(input.orderId);
+  order.submit();
+  await orderRepository.save(order);
+  await eventBus.publish({
+    type: "order.submitted",
+    orderId: order.id,
+  } satisfies { type: "order.submitted"; orderId: string });
+}
+```
+
+Esa es la forma que quiero: cargar, ejecutar comportamiento del dominio, persistir, publicar. Todo lo demás serialización, transacciones, reintentos, reintentos con idempotencia, outbox handling pertenece alrededor del caso de uso, no dentro de él.
+
+## Dónde DDD compensa
+
+DDD realmente vale la complejidad cuando las reglas de negocio no son triviales y se espera que el sistema cambie con frecuencia. Eso normalmente implica múltiples equipos, múltiples subdominios y flujos donde una mala invariante puede generar daño financiero u operativo. Me gusta especialmente para plataformas administrativas enterprise, sistemas de comercio y productos con mucha lógica de inventario porque esos dominios acumulan edge cases más rápido de lo que jamás lo harán las apps CRUD simples.
+
+DDD también compensa cuando importan los límites de integración. Si un contexto publica domain events y otro reacciona de forma asíncrona, el modelo puede evolucionar sin forzar acoplamiento síncrono por todas partes. Ahí es donde DDD empieza a encajar naturalmente con CQRS y arquitectura event-driven: los write models refuerzan consistencia, los read models optimizan consultas y los eventos conectan bounded contexts sin colapsarlos en un único servicio gigante.
+
+No vendería DDD como la forma más rápida de lanzar un prototipo. Añade conceptos, coordinación y disciplina de naming, y eso tiene un coste real. Pero cuando el producto tiene suficiente comportamiento como para que las reglas de negocio se conviertan en el producto, DDD suele ser la forma más barata de evitar que el codebase termine convertido en un montón de complejidad incidental.
+
+## Cuándo es excesivo
+
+DDD es excesivo cuando la app son mayormente formularios sencillos, registros simples y flujos ligeros. Si el sistema tiene un solo equipo, un solo modelo mental y muy pocas invariantes, una arquitectura CRUD por capas suele ser la mejor elección. Las peores implementaciones de DDD son las que agregan ceremonia antes de que el equipo tenga un problema de dominio real que resolver.
+
+Tampoco fuerzo DDD en cada feature de un producto grande. No cada rincón del sistema merece un aggregate root, un repository, un application service y un domain event. A veces la respuesta correcta es una consulta simple, una sola tabla y una función bien nombrada; DDD debería afinar el criterio, no reemplazarlo.
+
+## Errores comunes
+
+El error más común es tratar DDD como una estructura de carpetas en lugar de una disciplina de modelado. Los equipos crean directorios `domain/` `application/` `infrastructure/`pero la lógica real sigue viviendo en serializers, hooks del ORM y handlers de UI. El resultado parece arquitectado, pero se comporta como una app spaghetti con un árbol más bonito.
+
+El segundo error es crear demasiados aggregates. Si cada objeto es un aggregate root, pierdes los beneficios de los límites transaccionales y terminas con un object graph difícil de razonar. Los aggregates deben ser lo bastante pequeños para proteger consistencia y lo bastante grandes para modelar la invariante real del negocio, no el esquema de la base de datos.
+
+El tercer error es filtrar el modelo de base de datos dentro del modelo de dominio. Foreign keys, comodidades del ORM y estrategias de eager-loading son preocupaciones de infraestructura, no conceptos del dominio. Cuando el object model está moldeado principalmente por persistencia, el código suele ser fácil de almacenar y difícil de entender.
+
+El cuarto error es ignorar la deriva del lenguaje. Si producto, soporte e ingeniería usan palabras distintas para la misma cosa, el límite del bounded context está ausente o no está documentado. DDD funciona mejor cuando el equipo sigue refinando el ubiquitous language y hace visibles los límites de contexto en código y en diagramas de arquitectura.
+
+## Lo que hago realmente
+
+En proyectos reales, empiezo por los flujos de negocio, no por las clases. Mapeo los sustantivos y verbos principales, identifico dónde cambia el lenguaje y luego decido qué límite merece un modelo y qué límite puede seguir siendo simple. Eso suele darme un pequeño conjunto de contextos, un puñado de aggregates y un lugar claro donde poner domain events y casos de uso.
+
+Desde ahí, mantengo estricto el modelo de dominio y flexibles los bordes. El dominio conoce las reglas; la capa de aplicación coordina; la capa de infraestructura persiste, encola e integra; y la UI se mantiene delgada. Esa estructura funciona bien tanto en Next.js/TypeScript como en Django/Python porque mantiene el comportamiento central del negocio portable entre frameworks.
+
+## Conclusiones
+
+DDD es más útil cuando el software necesita reflejar un negocio complicado, no cuando simplemente necesita más abstracción. Uso bounded contexts para separar significados, value objects para proteger reglas pequeñas, aggregates para cuidar consistencia y límites de framework para mantener limpio el dominio. Si el sistema es demasiado pequeño para todo ese setup, lo mantengo simple y sigo adelante; si es lo bastante grande como para sentir el dolor, DDD se gana su lugar.
+
+## Referencias
+
+1. [Domain Driven Design | Martin Fowler](https://martinfowler.com/bliki/DomainDrivenDesign.html)
+2. [Bounded Context | Martin Fowler](https://martinfowler.com/bliki/BoundedContext.html)
+3. [Etiqueta Domain Driven Design | Martin Fowler](https://martinfowler.com/tags/domain%20driven%20design.html)
+4. [Domain Driven Design Community | DDD Community](https://www.dddcommunity.org)

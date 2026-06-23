@@ -3,9 +3,7 @@ import path from "path"
 import matter from "gray-matter"
 import readingTime from "reading-time"
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+export type Locale = "en" | "es"
 
 export interface BlogPost {
   slug: string
@@ -17,23 +15,21 @@ export interface BlogPost {
   tags: string[]
   coverImage: string
   readingTime: string
-  /** Raw MDX source — only present when fetched by slug */
+  /** Raw MDX source â€” only present when fetched by slug */
   content?: string
 }
 
-// ---------------------------------------------------------------------------
-// Internals
-// ---------------------------------------------------------------------------
-
-const BLOG_DIR = path.join(process.cwd(), "content", "blog")
+function getBlogDir(locale: Locale) {
+  return path.join(process.cwd(), "content", "blog", locale)
+}
 
 function slugFromFilename(filename: string): string {
   return filename.replace(/\.mdx$/, "")
 }
 
-function parsePost(filename: string, includeContent: boolean): BlogPost {
+function parsePost(locale: Locale, filename: string, includeContent: boolean): BlogPost {
   const slug = slugFromFilename(filename)
-  const raw = fs.readFileSync(path.join(BLOG_DIR, filename), "utf8")
+  const raw = fs.readFileSync(path.join(getBlogDir(locale), filename), "utf8")
   const { data, content } = matter(raw)
 
   const title = (data.title as string) ?? slug
@@ -60,28 +56,38 @@ function parsePost(filename: string, includeContent: boolean): BlogPost {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
 /** Returns all posts sorted by date descending, without MDX body. */
-export function getAllPosts(): BlogPost[] {
+export function getAllPosts(locale: Locale): BlogPost[] {
   const files = fs
-    .readdirSync(BLOG_DIR)
+    .readdirSync(getBlogDir(locale))
     .filter((f) => f.endsWith(".mdx"))
 
   return files
-    .map((f) => parsePost(f, false))
+    .map((f) => parsePost(locale, f, false))
     .sort(
       (a, b) =>
         new Date(b.dateISO).getTime() - new Date(a.dateISO).getTime(),
     )
 }
 
+export function getAllPostSlugs(locale: Locale): string[] {
+  return fs
+    .readdirSync(getBlogDir(locale))
+    .filter((f) => f.endsWith(".mdx"))
+    .map(slugFromFilename)
+}
+
 /** Returns a single post including the raw MDX content for rendering. */
-export function getPostBySlug(slug: string): BlogPost | null {
+export function getPostBySlug(slug: string, locale: Locale): BlogPost | null {
   const filename = `${slug}.mdx`
-  const filepath = path.join(BLOG_DIR, filename)
-  if (!fs.existsSync(filepath)) return null
-  return parsePost(filename, true)
+  const localizedFilepath = path.join(getBlogDir(locale), filename)
+
+  if (fs.existsSync(localizedFilepath)) {
+    return parsePost(locale, filename, true)
+  }
+
+  const fallbackFilepath = path.join(getBlogDir("en"), filename)
+  if (!fs.existsSync(fallbackFilepath)) return null
+
+  return parsePost("en", filename, true)
 }

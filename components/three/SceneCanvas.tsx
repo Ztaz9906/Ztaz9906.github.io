@@ -2,32 +2,22 @@
 
 import { Component, Suspense, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
+import { useTranslations } from "next-intl";
 import type { Vector3 } from "three";
 import GlowPostProcessing from "./GlowPostProcessing";
 
-/* -------------------------------------------------------------------------- */
-/*  Types                                                                     */
-/* -------------------------------------------------------------------------- */
-
 interface SceneCanvasProps {
   children: ReactNode;
-  /** Camera field-of-view in degrees (default 45) */
   fov?: number;
-  /** Camera position [x, y, z] (default [0, 0, 6]) */
   cameraPosition?: [number, number, number] | Vector3;
-  /** Custom fallback element while the canvas loads */
   fallback?: ReactNode;
-  /** Extra className applied to the outer wrapper */
   className?: string;
-  /** Enable post-processing bloom glow (default true) */
   enableGlow?: boolean;
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Default loading fallback – pulsing skeleton                               */
-/* -------------------------------------------------------------------------- */
-
 function DefaultFallback() {
+  const t = useTranslations("common");
+
   return (
     <div
       style={{
@@ -37,7 +27,7 @@ function DefaultFallback() {
         borderRadius: "0.75rem",
         animation: "scene-pulse 2s ease-in-out infinite",
       }}
-      aria-label="Loading 3D scene…"
+      aria-label={t("sceneLoadingAria")}
     >
       <style>{`
         @keyframes scene-pulse {
@@ -49,11 +39,9 @@ function DefaultFallback() {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  WebGL unavailable fallback – shown when GPU/WebGL is disabled             */
-/* -------------------------------------------------------------------------- */
-
 function WebGLUnavailableFallback() {
+  const t = useTranslations("common");
+
   return (
     <div
       style={{
@@ -69,9 +57,8 @@ function WebGLUnavailableFallback() {
         gap: "0.75rem",
         border: "1px dashed #1f2937",
       }}
-      aria-label="3D scene unavailable"
+      aria-label={t("sceneUnavailableAria")}
     >
-      {/* Simple SVG GPU icon */}
       <svg
         width="40"
         height="40"
@@ -96,18 +83,13 @@ function WebGLUnavailableFallback() {
           lineHeight: 1.6,
         }}
       >
-        WebGL unavailable.
+        {t("sceneUnavailableTitle")}
         <br />
-        Enable hardware acceleration in your browser to view this scene.
+        {t("sceneUnavailableDescription")}
       </p>
     </div>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  ErrorBoundary — must be a class component (React requirement)             */
-/*  Catches WebGL context creation failures and Three.js renderer errors.     */
-/* -------------------------------------------------------------------------- */
 
 interface ErrorBoundaryState {
   failed: boolean;
@@ -127,7 +109,6 @@ class WebGLErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error) {
-    // Only log in development — don't pollute production console
     if (process.env.NODE_ENV === "development") {
       console.warn("[SceneCanvas] WebGL error caught by boundary:", error.message);
     }
@@ -139,30 +120,17 @@ class WebGLErrorBoundary extends Component<
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Three-point lighting rig                                                  */
-/* -------------------------------------------------------------------------- */
-
 function LightingRig() {
   return (
     <>
-      {/* Key light */}
       <directionalLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
-      {/* Fill light */}
       <directionalLight position={[-4, -2, 3]} intensity={0.4} color="#94a3b8" />
-      {/* Rim – cool blue accent */}
       <pointLight position={[-3, 2, -4]} intensity={0.8} color="#3B82F6" distance={15} decay={2} />
-      {/* Rim – purple accent */}
       <pointLight position={[3, -1, -5]} intensity={0.6} color="#8B5CF6" distance={15} decay={2} />
-      {/* Low-level ambient so nothing goes fully black */}
       <ambientLight intensity={0.15} color="#1e1b4b" />
     </>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  SceneCanvas                                                               */
-/* -------------------------------------------------------------------------- */
 
 export default function SceneCanvas({
   children,

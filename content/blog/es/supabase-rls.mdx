@@ -1,0 +1,452 @@
+---
+title: "Supabase Row Level Security en la práctica"
+date: "2025-07-18"
+excerpt: "Una guía práctica de Row Level Security en Supabase y Postgres, con patrones claros para políticas, rendimiento y testing antes de salir a producción."
+tags: ["supabase", "postgres", "row-level-security", "seguridad", "testing"]
+coverImage: "/blog/supabase-row-level-security-in-practice/cover.jpg"
+---
+
+---
+
+# Supabase Row-Level Security en la práctica
+
+Trato Row Level Security (RLS) como la última línea de defensa, no como un paso opcional de hardening.
+
+En Supabase, eso importa todavía más porque los clientes del navegador pueden hablar directamente con tu base de datos. La capa de políticas tiene que ser correcta tanto si el código de aplicación lo hace bien como si no.
+
+La documentación de Supabase lo deja explícito:
+
+> Una vez que RLS está habilitado, no hay datos accesibles a través de la API hasta que existan políticas.
+
+Ese modelo de "deny by default" es exactamente por lo que confío en RLS para sistemas multi-tenant y aplicaciones orientadas al cliente.
+
+## Por qué importa RLS
+
+La autorización a nivel de aplicación es útil, pero no es suficiente.
+
+Un bug en:
+
+- Una Server Action
+- Una API route
+- Un dashboard administrativo
+- Un background worker
+
+puede saltarse la lógica de aplicación mientras la base de datos sigue devolviendo filas sin problema.
+
+RLS mueve la autorización a PostgreSQL.
+
+Pienso en los checks de aplicación y en RLS como dominios de fallo separados:
+
+- La aplicación decide qué intenta hacer.
+- La base de datos decide qué está permitido hacer.
+
+Supabase describe las políticas como cláusulas `WHERE` implícitas adjuntas a cada query.
+
+Ese modelo mental es útil porque me recuerda que la autorización se refuerza durante la ejecución de la query, no solo en la UI.
+
+## El patrón básico
+
+Antes de escribir cualquier política, verifico que RLS esté habilitado.
+
+Si creo tablas con SQL raw, nunca asumo que el dashboard ya lo hizo por mí.
+
+```sql id="d8a5v9"
+alter table public.todos
+enable row level security;
+
+grant select, insert, update, delete
+on public.todos
+to authenticated;
+
+grant select
+on public.todos
+to anon;
+```
+
+El detalle importante es que permisos y políticas son capas distintas.
+
+**Grants** responden:
+
+> ¿Qué acciones puede intentar este rol?
+
+**Policies** responden:
+
+> ¿A qué filas puede acceder realmente este rol?
+
+Esa distinción se vuelve importante al depurar fallos de autorización.
+
+## Solo tus propias filas
+
+El patrón de RLS más común es ownership.
+
+Un usuario solo puede acceder a sus propias filas.
+
+Supabase ofrece el helper `auth.uid()`, que devuelve el ID del usuario autenticado.
+
+Supabase también recomienda envolverlo en `select` para que PostgreSQL pueda evaluarlo una vez por statement en lugar de una vez por fila.
+
+```sql id="s0u53g"
+create table public.todos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  task text not null,
+  completed boolean not null default false
+);
+
+alter table public.todos
+enable row level security;
+
+create policy "Users can read their own todos"
+on public.todos
+for select
+to authenticated
+using (
+  (select auth.uid()) = user_id
+);
+
+create policy "Users can create their own todos"
+on public.todos
+for insert
+to authenticated
+with check (
+  (select auth.uid()) = user_id
+);
+
+create policy "Users can update their own todos"
+on public.todos
+for update
+to authenticated
+using (
+  (select auth.uid()) = user_id
+)
+with check (
+  (select auth.uid()) = user_id
+);
+
+create policy "Users can delete their own todos"
+on public.todos
+for delete
+to authenticated
+using (
+  (select auth.uid()) = user_id
+);
+```
+
+Esta estructura es intencionalmente aburrida.
+
+Las políticas de ownership deberían ser lo bastante obvias como para que otro engineer las lea una vez y entienda exactamente qué está permitido.
+
+Un detalle que sorprende a mucha gente:
+
+Para operaciones `UPDATE`, Supabase espera una política `SELECT` compatible o el update puede no comportarse como esperas.
+
+## Acceso basado en roles
+
+A medida que los productos crecen, ownership deja de ser suficiente.
+
+Pronto necesitas:
+
+- Agentes de soporte
+- Moderadores
+- Personal de operaciones
+- Administradores de organización
+
+Supabase expone roles como `authenticated` y `anon` como roles de PostgreSQL, permitiendo que las políticas apunten directamente a audiencias concretas.
+
+```sql id="q7x0mz"
+create table public.orders (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null,
+  status text not null,
+  total_cents int not null
+);
+
+alter table public.orders
+enable row level security;
+
+create policy "Customers can read their own orders"
+on public.orders
+for select
+to authenticated
+using (
+  (select auth.uid()) = customer_id
+);
+
+create policy "Support can read all orders"
+on public.orders
+for select
+to authenticated
+using (
+  (
+    select auth.jwt()
+      -> 'app_metadata'
+      ->> 'role'
+  ) = 'support'
+);
+```
+
+Prefiero role claims almacenados en `app_metadata` o en otra fuente controlada.
+
+Nunca confío en metadata editable por el usuario para autorización.
+
+Si un rol necesita acceso más amplio, normalmente creo una política dedicada en lugar de construir expresiones gigantes con `OR` que luego se vuelven difíciles de razonar.
+
+## Datos multi-tenant
+
+El entorno multi-tenant es donde RLS realmente brilla.
+
+La mayoría de las aplicaciones SaaS siguen una regla simple:
+
+> Los usuarios solo pueden acceder a las filas que pertenecen a su organización.
+
+Modelo esa relación de forma directa.
+
+```sql id="p52y2k"
+create table public.organizations (
+  id uuid primary key default gen_random_uuid(),
+  name text not null
+);
+
+create table public.organization_members (
+  organization_id uuid not null
+    references public.organizations(id),
+  user_id uuid not null
+    references auth.users(id),
+  role text not null,
+  primary key (
+    organization_id,
+    user_id
+  )
+);
+
+create table public.invoices (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null
+    references public.organizations(id),
+  amount_cents int not null
+);
+
+alter table public.invoices
+enable row level security;
+
+create policy "Org members can read invoices"
+on public.invoices
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.organization_members m
+    where m.organization_id =
+      invoices.organization_id
+      and m.user_id =
+        (select auth.uid())
+  )
+);
+```
+
+La política es fácil de leer, pero el rendimiento también importa.
+
+Las comprobaciones de RLS se ejecutan como parte de la ejecución de la query, así que las políticas mal diseñadas pueden volverse caras a escala.
+
+## Rendimiento a escala
+
+RLS tiene un coste.
+
+La meta es que ese coste sea predecible.
+
+Supabase recomienda:
+
+- Indexar columnas usadas en las políticas
+- Envolver funciones helper en `select`
+- Minimizar joins
+- Añadir filtros en las queries de aplicación
+- Usar cláusulas `TO` cuando sea posible
+
+```sql id="w3vwrf"
+create index
+on public.todos (user_id);
+
+create index
+on public.invoices (organization_id);
+
+create index
+on public.organization_members (
+  user_id,
+  organization_id
+);
+```
+
+Estos índices importan porque la ejecución de políticas solo es tan rápida como el camino de lookup que tiene detrás.
+
+También presto atención a las views.
+
+Las views suelen saltarse RLS porque se crean como `security definer`.
+
+En PostgreSQL 15+, puedo forzar una view a respetar las políticas subyacentes:
+
+```sql id="4om6a1"
+create view customer_invoices
+with (security_invoker = true)
+as
+select *
+from public.invoices;
+```
+
+Pasar por alto ese detalle puede crear accidentalmente una fuga de datos.
+
+## Qué testeo
+
+Nunca llevo políticas RLS a producción después de hacer clic manualmente por el dashboard.
+
+Supabase recomienda testing automatizado.
+
+Yo prefiero testing a nivel de base de datos porque mantiene la lógica de autorización cerca del schema.
+
+Un test sencillo estilo pgTAP se ve así:
+
+```sql id="mxqzt0"
+begin;
+
+create extension if not exists pgtap
+with schema extensions;
+
+select plan(4);
+
+set local role authenticated;
+
+set local request.jwt.claims =
+'{"sub":"11111111-1111-1111-1111-111111111111"}';
+
+select results_eq(
+  $$ select count(*) from public.todos $$,
+  $$ values (1) $$,
+  'authenticated user only sees their own todo'
+);
+
+select results_eq(
+  $$ select count(*)
+     from public.todos
+     where user_id =
+       '22222222-2222-2222-2222-222222222222' $$,
+  $$ values (0) $$,
+  'cannot see another user row'
+);
+
+select ok(
+  not exists (
+    select 1
+    from public.todos
+    where user_id <>
+      '11111111-1111-1111-1111-111111111111'
+  ),
+  'no cross-user leakage'
+);
+
+select * from finish();
+
+rollback;
+```
+
+Normalmente coloco estos tests en:
+
+```text id="qck32e"
+supabase/tests/database
+```
+
+y los ejecuto con:
+
+```bash id="u3c4b2"
+supabase test db
+```
+
+Eso me da un ciclo de feedback rápido antes de que las políticas lleguen a producción.
+
+## Primero los casos negativos
+
+Los tests de autorización más fuertes no son los happy-path tests.
+
+Son los failure-path tests.
+
+Quiero verificar:
+
+- Los usuarios anónimos no pueden leer datos privados.
+- Los usuarios no pueden actualizar registros que no les pertenecen.
+- El personal de soporte solo ve lo que se le permite ver.
+- La ownership no puede reasignarse mediante updates.
+
+También testeo:
+
+- JWT claims ausentes
+- User IDs nulos
+- Sesiones expiradas
+- Membresía de tenant inválida
+
+Un fallo al denegar suele ser mucho más peligroso que un fallo al permitir.
+
+## Errores comunes
+
+### Desactivar RLS para arreglar una query
+
+Normalmente esta es la solución equivocada.
+
+Si una query falla, la política suele estar exponiendo una regla de autorización que falta en el sistema.
+
+RLS debe permanecer habilitado en todas las tablas expuestas.
+
+### Confiar en metadata del usuario
+
+Supabase advierte explícitamente que `user_metadata` está controlado por el usuario.
+
+Los datos de autorización deberían venir de:
+
+- `app_metadata`
+- Tablas protegidas
+- Claims controlados
+
+### Políticas “ingeniosas”
+
+Una política debería poder explicarse en una sola frase.
+
+Si requiere:
+
+- Múltiples joins
+- Condiciones anidadas
+- Subqueries complejas
+
+Normalmente rediseño el modelo de acceso.
+
+## Flujo práctico
+
+Mi flujo es simple:
+
+1. Habilitar RLS por defecto.
+2. Crear políticas de ownership o de tenant.
+3. Añadir índices para los predicados de las políticas.
+4. Testear casos positivos y negativos.
+5. Revisar políticas cada vez que cambia el modelo de auth.
+
+Ese proceso mantiene la seguridad cerca del schema en lugar de intentar adaptarla después.
+
+## Reflexiones finales
+
+RLS es uno de los pocos mecanismos de seguridad que se vuelve más valioso a medida que los sistemas crecen.
+
+En Supabase, lo uso como un guardrail debajo del código de aplicación, no como un reemplazo de este.
+
+Mis reglas son simples:
+
+- Mantén las políticas pequeñas.
+- Mantén ownership explícito.
+- Indexa las columnas usadas por las políticas.
+- Testea casos negativos.
+- Trata RLS como parte del schema, no como una ocurrencia tardía.
+
+Cuando se siguen esos principios, la propia base de datos se convierte en un boundary de autorización confiable incluso cuando el código de aplicación comete errores.
+
+## Referencias
+
+1. [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
+2. [Testing Your Database](https://supabase.com/docs/guides/database/testing)
+3. [CREATE POLICY](https://www.postgresql.org/docs/current/sql-createpolicy.html)
+4. [Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)

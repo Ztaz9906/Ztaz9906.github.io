@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef } from "react"
+import { useTranslations } from "next-intl"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useGSAP } from "@gsap/react"
@@ -10,6 +11,7 @@ if (typeof window !== "undefined") {
 }
 
 export function DDDLayersDiagram() {
+  const t = useTranslations("common")
   const container = useRef<HTMLDivElement>(null)
 
   useGSAP(
@@ -82,7 +84,7 @@ export function DDDLayersDiagram() {
       <svg
         viewBox="0 0 400 420"
         className="w-full max-w-md overflow-visible font-mono"
-        aria-label="DDD Layers diagram"
+        aria-label={t("dddAriaLabel")}
       >
         <defs>
           {["cyan", "blue", "purple", "muted-foreground"].map((color) => (
@@ -101,16 +103,6 @@ export function DDDLayersDiagram() {
           ))}
         </defs>
 
-        {/*
-          Dependency Rule (Uncle Bob / DDD):
-          - Presentation depends on Application
-          - Application depends on Domain
-          - Infrastructure depends on Domain (implements its ports/interfaces)
-          - Domain depends on NOTHING — it is the innermost ring
-          Arrows point in the direction of dependency: A→B means "A depends on B".
-        */}
-
-        {/* Presentation → Application (depends on Application) */}
         <path
           className="anim-line"
           d="M 200 76 L 200 105"
@@ -121,8 +113,6 @@ export function DDDLayersDiagram() {
           pathLength="100"
           markerEnd="url(#ddd-arrow-cyan)"
         />
-
-        {/* Application → Domain (depends on Domain) */}
         <path
           className="anim-line"
           d="M 200 166 L 200 195"
@@ -133,12 +123,6 @@ export function DDDLayersDiagram() {
           pathLength="100"
           markerEnd="url(#ddd-arrow-blue)"
         />
-
-        {/*
-          Infrastructure → Domain (NOT Domain → Infrastructure).
-          Infrastructure implements interfaces/ports defined in Domain.
-          Arrow is routed up the right side to make the direction unambiguous.
-        */}
         <path
           className="anim-line"
           d="M 320 313 C 360 313, 360 228, 320 228"
@@ -150,33 +134,31 @@ export function DDDLayersDiagram() {
           markerEnd="url(#ddd-arrow-purple)"
         />
 
-        {/* Boxes — top to bottom by conceptual position (Infra is outer, not inner) */}
         <Box
           y={20}
-          title="Presentation"
-          subtitle="UI components, controllers"
+          title={t("dddPresentationTitle")}
+          subtitle={t("dddPresentationSubtitle")}
           color="cyan"
         />
         <Box
           y={110}
-          title="Application"
-          subtitle="Use cases, orchestration"
+          title={t("dddApplicationTitle")}
+          subtitle={t("dddApplicationSubtitle")}
           color="blue"
         />
         <Box
           y={200}
-          title="Domain"
-          subtitle="Business rules, entities"
+          title={t("dddDomainTitle")}
+          subtitle={t("dddDomainSubtitle")}
           color="purple"
         />
         <Box
           y={290}
-          title="Infrastructure"
-          subtitle="DB, external services — implements Domain ports"
+          title={t("dddInfrastructureTitle")}
+          subtitle={t("dddInfrastructureSubtitle")}
           color="border"
         />
 
-        {/* Clarifying label for the Infrastructure→Domain arrow */}
         <text
           x="368"
           y="272"
@@ -185,7 +167,7 @@ export function DDDLayersDiagram() {
           fontSize="9"
           fontStyle="italic"
         >
-          implements
+          {t("dddImplements")}
         </text>
         <text
           x="368"
@@ -195,7 +177,7 @@ export function DDDLayersDiagram() {
           fontSize="9"
           fontStyle="italic"
         >
-          Domain ports
+          {t("dddDomainPorts")}
         </text>
       </svg>
     </div>

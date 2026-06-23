@@ -1,10 +1,14 @@
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { getLocale, getTranslations } from "next-intl/server"
 import { SectionHeading } from "@/components/section-heading"
 import { Reveal } from "@/components/reveal"
-import { EXPERIENCE } from "@/lib/data"
+import { getExperience, type Locale } from "@/lib/data"
 
-export function Experience() {
+export async function Experience() {
+  const locale = (await getLocale()) as Locale
+  const t = await getTranslations("experience")
+  const experience = getExperience(locale)
   return (
     <section
       id="experience"
@@ -12,8 +16,8 @@ export function Experience() {
     >
       <SectionHeading
         eyebrow="// 02"
-        title="Experience"
-        description="A timeline of where I've built, scaled, and shipped."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="relative mt-14 pl-8 sm:pl-10">
@@ -22,7 +26,7 @@ export function Experience() {
           className="absolute left-[7px] top-1.5 bottom-1.5 w-px bg-border sm:left-[11px]"
         />
         <ol className="space-y-8">
-          {EXPERIENCE.map((item, i) => (
+          {experience.map((item, i) => (
             <li key={item.company} className="relative">
               <span
                 aria-hidden

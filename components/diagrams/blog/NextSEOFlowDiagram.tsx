@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BlogDiagramShell, useDiagramContainer } from "./_shared";
 
 function Box({
@@ -64,6 +65,7 @@ function Box({
 }
 
 export function NextSEOFlowDiagram() {
+  const t = useTranslations("blog");
   const container = useDiagramContainer();
 
   return (
@@ -71,7 +73,7 @@ export function NextSEOFlowDiagram() {
       <svg
         viewBox="0 0 900 450"
         className="h-full w-full font-mono"
-        aria-label="Next.js SEO flow from metadata generation to crawlers and indexed result"
+        aria-label={t("diagramSeoAriaLabel")}
       >
         <defs>
           <marker
@@ -91,40 +93,40 @@ export function NextSEOFlowDiagram() {
           x={52}
           y={196}
           width={230}
-          title="generateMetadata() + Server Component"
-          titleLines={["generateMetadata()", "+ Server Component"]}
-          subtitle="server-side SEO inputs"
+          title={t("diagramSeoGenerateMetadataServerComponent")}
+          titleLines={["generateMetadata()", t("diagramSeoServerComponentLine")]}
+          subtitle={t("diagramSeoServerSideInputs")}
           color="cyan"
         />
         <Box
           x={338}
           y={196}
           width={198}
-          title="Rendered HTML + Metadata"
-          subtitle="title, meta, OG tags"
+          title={t("diagramSeoRenderedHtmlMetadata")}
+          subtitle={t("diagramSeoTitleMetaOg")}
           color="blue"
         />
         <Box
           x={640}
           y={96}
           width={178}
-          title="Search Engine Crawler"
-          subtitle="indexing bot"
+          title={t("diagramSeoSearchEngineCrawler")}
+          subtitle={t("diagramSeoIndexingBot")}
           color="purple"
         />
         <Box
           x={640}
           y={274}
           width={178}
-          title="Social Crawler"
-          subtitle="OG tags"
+          title={t("diagramSeoSocialCrawler")}
+          subtitle={t("diagramSeoOgTags")}
           color="purple"
         />
         <Box
           x={570}
           y={374}
           width={280}
-          title="Indexed Result / Rich Link Preview"
+          title={t("diagramSeoIndexedResult")}
           color="cyan"
         />
 
@@ -155,7 +157,7 @@ export function NextSEOFlowDiagram() {
           fill="var(--color-purple)"
           fontSize="9"
         >
-          crawl
+          {t("diagramSeoCrawl")}
         </text>
         <text
           className="diagram-label"
@@ -164,7 +166,7 @@ export function NextSEOFlowDiagram() {
           fill="var(--color-purple)"
           fontSize="9"
         >
-          read OG tags
+          {t("diagramSeoReadOgTags")}
         </text>
       </svg>
     </BlogDiagramShell>

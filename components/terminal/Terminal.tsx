@@ -3,6 +3,7 @@
 import type { KeyboardEvent } from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { TerminalSquare } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { PROFILE } from "@/lib/data";
 import {
@@ -10,6 +11,7 @@ import {
   findCommand,
   type TerminalCommandResult,
 } from "@/lib/terminal/commands";
+import type { Locale } from "@/lib/data/projects";
 import {
   TERMINAL_FOCUS_EVENT,
   TERMINAL_FOCUS_STATE_EVENT,
@@ -23,21 +25,17 @@ type OutputEntry = {
   lines: string[];
 };
 
-const DEFAULT_INITIAL_OUTPUT: OutputEntry[] = [
-  {
-    id: "welcome",
-    lines: [
-      `Interactive shell ready for ${PROFILE.name}.`,
-      "Type 'help' to inspect projects, experience, skills, and contact info.",
-    ],
-  },
-];
-
 function shouldReduceMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function stopEmbeddedEventPropagation(event: {
+  stopPropagation: () => void;
+}) {
+  event.stopPropagation();
+}
+
+function stopEmbeddedPointerEventPropagation(event: {
   stopPropagation: () => void;
 }) {
   event.stopPropagation();
@@ -54,21 +52,27 @@ export function Terminal({
   initialOutput,
   onFocusChange,
 }: TerminalProps) {
+  const locale = useLocale() as Locale;
+  const t = useTranslations("common");
   const inputId = useId();
   const sectionRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
+  const defaultInitialOutput = [
+    t("terminalInitialReady", { name: PROFILE.name }),
+    t("terminalInitialHelp"),
+  ];
+
   const [entries, setEntries] = useState<OutputEntry[]>([
     {
       id: "welcome",
-      lines: initialOutput ?? DEFAULT_INITIAL_OUTPUT[0]!.lines,
+      lines: initialOutput ?? defaultInitialOutput,
     },
   ]);
   const [value, setValue] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
-  const [hasAutoFocused, setHasAutoFocused] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const prompt = useMemo(() => "guest@portfolio:~$", []);
@@ -96,28 +100,6 @@ export function Terminal({
     if (!log) return;
     log.scrollTop = log.scrollHeight;
   }, [entries]);
-
-  useEffect(() => {
-    if (isEmbedded) return;
-
-    const section = sectionRef.current;
-    if (!section || hasAutoFocused) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        setHasAutoFocused(true);
-        inputRef.current?.focus();
-        observer.disconnect();
-      },
-      {
-        threshold: 0.45,
-      },
-    );
-
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, [hasAutoFocused, isEmbedded]);
 
   useEffect(() => {
     const focusInput = () => {
@@ -182,14 +164,14 @@ export function Terminal({
     });
     setHistoryIndex(null);
 
-    const command = findCommand(trimmed);
+    const command = findCommand(trimmed, locale);
     if (command) {
       pushOutput(trimmed, command.run());
     } else {
       pushOutput(trimmed, {
         type: "output",
         lines: [
-          `command not found: ${trimmed}. Type 'help' to see available commands.`,
+          t("terminalCommandNotFound", { command: trimmed }),
         ],
       });
     }
@@ -241,11 +223,15 @@ export function Terminal({
 
     if (event.key === "Tab") {
       event.preventDefault();
-      const match = autocompleteCommand(value);
+      const match = autocompleteCommand(value, locale);
       if (match) {
         setValue(match);
       }
     }
+  }
+
+  function focusInputOnShellClick() {
+    inputRef.current?.focus();
   }
 
   const shell = (
@@ -253,6 +239,7 @@ export function Terminal({
       id={TERMINAL_SECTION_ID}
       ref={sectionRef}
       className={`overflow-hidden rounded-2xl border border-border bg-[#030712]/95 shadow-[0_0_40px_-18px_rgba(59,130,246,0.45)] ${shellClassName}`}
+      onClick={focusInputOnShellClick}
       onPointerDownCapture={isEmbedded ? stopEmbeddedEventPropagation : undefined}
       onPointerUpCapture={isEmbedded ? stopEmbeddedEventPropagation : undefined}
       onClickCapture={isEmbedded ? stopEmbeddedEventPropagation : undefined}
@@ -265,7 +252,7 @@ export function Terminal({
         <span className="size-3 rounded-full bg-[#28C840]" />
         <div className={`ml-2 flex items-center gap-2 font-mono text-muted-foreground ${headerTextClassName}`}>
           <TerminalSquare className={isEmbedded ? "size-4" : "size-3.5"} />
-          <span>enrique@portfolio: ~</span>
+          <span>{t("terminalWindowTitle")}</span>
         </div>
       </div>
 
@@ -301,7 +288,7 @@ export function Terminal({
 
       <div className={`border-t border-border bg-card/50 ${inputWrapClassName}`}>
         <label htmlFor={inputId} className="sr-only">
-          Terminal command input
+          {t("terminalInputLabel")}
         </label>
         <div className={`flex items-center rounded-lg border border-border bg-background/70 shadow-inner focus-within:border-blue/60 focus-within:ring-2 focus-within:ring-blue/30 ${inputRowClassName}`}>
           <span className={`shrink-0 font-mono text-cyan ${promptClassName}`}>{prompt}</span>
@@ -319,10 +306,10 @@ export function Terminal({
               autoCapitalize="off"
               spellCheck={false}
               aria-describedby={`${inputId}-help`}
-              onPointerDown={isEmbedded ? stopEmbeddedEventPropagation : undefined}
-              onClick={isEmbedded ? stopEmbeddedEventPropagation : undefined}
+              onPointerDown={isEmbedded ? stopEmbeddedPointerEventPropagation : undefined}
+              onClick={isEmbedded ? stopEmbeddedPointerEventPropagation : undefined}
               className={`min-w-0 flex-1 bg-transparent font-mono text-foreground outline-none placeholder:text-muted-foreground focus-visible:outline-none ${inputClassName}`}
-              placeholder="Type a command..."
+              placeholder={t("terminalPlaceholder")}
             />
             <span
               aria-hidden
@@ -335,14 +322,14 @@ export function Terminal({
           </div>
         </div>
         <p id={`${inputId}-help`} className={`font-mono text-muted-foreground ${helperClassName}`}>
-          Press Enter to run, Up/Down for history, and Tab to autocomplete.
+          {t("terminalHelp")}
         </p>
       </div>
     </div>
   );
 
   if (isEmbedded) {
-    return <div className="h-full" aria-label="Interactive portfolio terminal">{shell}</div>;
+    return <div className="h-full" aria-label={t("terminalAriaLabel")}>{shell}</div>;
   }
 
   return (
@@ -356,9 +343,9 @@ export function Terminal({
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
           titleId="terminal-heading"
-          eyebrow="// Interface"
-          title="Portfolio Terminal"
-          description="Explore the same project, experience, skills, and contact data through a shell-inspired interface."
+          eyebrow={t("terminalSectionEyebrow")}
+          title={t("terminalSectionTitle")}
+          description={t("terminalSectionDescription")}
         />
 
         <div className="mt-12">{shell}</div>

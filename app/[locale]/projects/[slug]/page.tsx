@@ -3,35 +3,51 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Calendar, Tag } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-import { PROJECTS } from "@/lib/data/projects";
+import {
+  PROJECTS,
+  getAllProjects,
+  getProject,
+  type Locale,
+} from "@/lib/data/projects";
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/reveal";
 import { ScreenshotsGallery } from "@/components/screenshots-gallery";
-
-// Diagram stubs — will be replaced with GSAP ScrollTrigger implementations
 import { DDDLayersDiagram } from "@/components/diagrams/DDDLayersDiagram";
 import { CQRSDiagram } from "@/components/diagrams/CQRSDiagram";
 import { EventDrivenDiagram } from "@/components/diagrams/EventDrivenDiagram";
+import { SubpageHeader } from "@/components/subpage-header";
+import { ViewCounterSlot } from "@/components/ViewCounterSlot";
 
 export function generateStaticParams() {
-  return PROJECTS.filter((p) => p.hasCaseStudy).map((p) => ({ slug: p.slug }));
+  return PROJECTS.filter((p) => p.hasCaseStudy).flatMap((p) => [
+    { locale: "en", slug: p.slug },
+    { locale: "es", slug: p.slug },
+  ]);
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: Locale; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const project = PROJECTS.find((p) => p.slug === slug);
+  const { locale, slug } = await params;
+  const project = getProject(slug, locale);
+  const t = await getTranslations({ locale, namespace: "projects" });
   if (!project) return {};
 
   return {
-    title: `${project.name} Case Study | Enrique Ferreiro`,
+    title: `${project.name} — ${t("ctaCaseStudy")}`,
     description: project.oneLiner,
+    alternates: {
+      languages: {
+        en: `/en/projects/${slug}`,
+        es: `/es/projects/${slug}`,
+      },
+    },
     openGraph: {
-      title: `${project.name} Case Study`,
+      title: `${project.name} — ${t("ctaCaseStudy")}`,
       description: project.oneLiner,
       type: "article",
     },
@@ -109,48 +125,32 @@ function ContentSection({
   );
 }
 
-export default async function CaseStudyPage({
-  params,
+async function CaseStudyContent({
+  project,
+  prevProject,
+  nextProject,
+  heroImage,
+  galleryImages,
+  locale,
 }: {
-  params: Promise<{ slug: string }>;
+  project: ReturnType<typeof getAllProjects>[number];
+  prevProject: ReturnType<typeof getAllProjects>[number] | null;
+  nextProject: ReturnType<typeof getAllProjects>[number] | null;
+  heroImage: string | undefined;
+  galleryImages: string[];
+  locale: Locale;
 }) {
-  const { slug } = await params;
-  const projectIndex = PROJECTS.findIndex((p) => p.slug === slug);
-  if (projectIndex === -1 || !PROJECTS[projectIndex]!.hasCaseStudy) notFound();
-
-  const project = PROJECTS[projectIndex]!;
-
-  // Find next/prev strictly among case studies
-  const caseStudies = PROJECTS.filter((p) => p.hasCaseStudy);
-  const caseIndex = caseStudies.findIndex((p) => p.slug === slug);
-  const prevProject = caseStudies[caseIndex - 1] ?? null;
-  const nextProject = caseStudies[caseIndex + 1] ?? null;
-
-  const heroImage = project.screenshots[0];
-  const galleryImages = project.screenshots.slice(1);
+  const t = await getTranslations({ locale, namespace: "case_study" });
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ------------------------------------------------------------------ */}
-      {/* Sticky Back Header                                                  */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center px-4 sm:px-6">
-          <Link
-            href="/#projects"
-            className="inline-flex items-center gap-2 font-mono text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back to Projects
-          </Link>
-        </div>
-      </div>
+      <SubpageHeader
+        locale={locale}
+        backHref={`/${locale}/#projects`}
+        backLabel={t("backToProjects")}
+      />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* 1. Hero                                                             */}
-      {/* ------------------------------------------------------------------ */}
       <header className="relative overflow-hidden">
-        {/* Ambient glow — no-JS safe, pure CSS */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 hero-mesh"
@@ -162,13 +162,12 @@ export default async function CaseStudyPage({
 
         <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
           <Reveal>
-            {/* Date range */}
             <div className="mb-4 flex items-center gap-2 font-mono text-xs text-muted-foreground">
               <Calendar className="size-3.5" />
               {project.dateRange}
+              <ViewCounterSlot page={project.slug} />
             </div>
 
-            {/* Title + oneLiner */}
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               {project.name}
             </h1>
@@ -176,7 +175,6 @@ export default async function CaseStudyPage({
               {project.oneLiner}
             </p>
 
-            {/* Stack tags */}
             <div className="mt-6 flex flex-wrap items-center gap-2">
               <Tag className="size-3.5 text-muted-foreground" />
               {project.stack.map((tag) => (
@@ -187,13 +185,12 @@ export default async function CaseStudyPage({
             </div>
           </Reveal>
 
-          {/* Hero screenshot / placeholder */}
           <Reveal delay={120} className="mt-10">
             <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/60">
               {heroImage ? (
                 <Image
                   src={heroImage}
-                  alt={`${project.name} Hero`}
+                  alt={t("heroImageAlt", { name: project.name })}
                   fill
                   className="object-cover"
                   sizes="(max-width: 1200px) 100vw, 1200px"
@@ -202,7 +199,7 @@ export default async function CaseStudyPage({
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-card/60 p-8">
                   <p className="font-mono text-xs text-muted-foreground">
-                    [ Hero screenshot — not yet provided ]
+                    {t("heroImagePending")}
                   </p>
                 </div>
               )}
@@ -211,19 +208,20 @@ export default async function CaseStudyPage({
         </div>
       </header>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Main content                                                        */}
-      {/* ------------------------------------------------------------------ */}
       <main className="mx-auto max-w-6xl space-y-20 px-4 py-20 sm:px-6">
-        {/* 2. Problem */}
-        <ContentSection eyebrow="// 01" title="The Problem">
+        <ContentSection
+          eyebrow={t("sectionProblemEyebrow")}
+          title={t("sectionProblemTitle")}
+        >
           <p className="max-w-3xl text-pretty leading-relaxed text-muted-foreground">
             {project.problem}
           </p>
         </ContentSection>
 
-        {/* 3. Architecture + diagram */}
-        <ContentSection eyebrow="// 02" title="Architecture">
+        <ContentSection
+          eyebrow={t("sectionArchitectureEyebrow")}
+          title={t("sectionArchitectureTitle")}
+        >
           <p className="max-w-3xl text-pretty leading-relaxed text-muted-foreground">
             {project.architecture}
           </p>
@@ -232,23 +230,24 @@ export default async function CaseStudyPage({
           </div>
         </ContentSection>
 
-        {/* 4. Solution */}
-        <ContentSection eyebrow="// 03" title="Solution">
+        <ContentSection
+          eyebrow={t("sectionSolutionEyebrow")}
+          title={t("sectionSolutionTitle")}
+        >
           <p className="max-w-3xl text-pretty leading-relaxed text-muted-foreground">
             {project.solution}
           </p>
         </ContentSection>
 
-        {/* 5. Stack — expanded */}
         <Reveal>
           <div className="mb-3 flex items-center gap-3">
             <span className="font-mono text-xs uppercase tracking-[0.2em] text-cyan">
-              // 04
+              {t("sectionStackEyebrow")}
             </span>
             <span className="h-px flex-1 bg-border" />
           </div>
           <h2 className="mb-6 text-2xl font-bold tracking-tight sm:text-3xl">
-            Tech Stack
+            {t("sectionStackTitle")}
           </h2>
           <div className="flex flex-wrap gap-3">
             {project.stack.map((tag) => (
@@ -263,17 +262,14 @@ export default async function CaseStudyPage({
         </Reveal>
       </main>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* 6. MetricsBand                                                      */}
-      {/* ------------------------------------------------------------------ */}
       <MetricsBand metrics={project.metrics} />
 
-      {/* ------------------------------------------------------------------ */}
-      {/* 7. Lessons Learned (only if non-empty)                             */}
-      {/* ------------------------------------------------------------------ */}
       {project.lessonsLearned.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <ContentSection eyebrow="// 05" title="Lessons Learned">
+          <ContentSection
+            eyebrow={t("sectionLessonsEyebrow")}
+            title={t("sectionLessonsTitle")}
+          >
             <ul className="mt-2 space-y-4">
               {project.lessonsLearned.map((lesson, i) => (
                 <li key={i} className="flex gap-3">
@@ -290,43 +286,39 @@ export default async function CaseStudyPage({
         </section>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* 8. Screenshots gallery                                              */}
-      {/* ------------------------------------------------------------------ */}
       {galleryImages.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 mt-4">
+        <section className="mx-auto mt-4 max-w-6xl px-4 pb-20 sm:px-6">
           <Reveal>
             <div className="mb-6 flex items-center gap-3">
               <span className="font-mono text-xs uppercase tracking-[0.2em] text-cyan">
-                // {project.lessonsLearned.length > 0 ? "06" : "05"}
+                {project.lessonsLearned.length > 0
+                  ? t("sectionScreenshotsEyebrowWithLessons")
+                  : t("sectionScreenshotsEyebrowNoLessons")}
               </span>
               <span className="h-px flex-1 bg-border" />
             </div>
             <h2 className="mb-8 text-2xl font-bold tracking-tight sm:text-3xl">
-              Screenshots
+              {t("sectionScreenshotsTitle")}
             </h2>
           </Reveal>
           <ScreenshotsGallery images={galleryImages} />
         </section>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Next Case Study nav                                                 */}
-      {/* ------------------------------------------------------------------ */}
       <nav
-        aria-label="Case study navigation"
+        aria-label={t("ariaNavigation")}
         className="border-t border-border bg-card/30"
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-8 sm:px-6">
           {prevProject ? (
             <Link
-              href={`/projects/${prevProject.slug}`}
-              className="group flex items-center gap-3 text-sm transition-colors hover:text-foreground text-muted-foreground"
+              href={`/${locale}/projects/${prevProject.slug}`}
+              className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
               <div>
                 <p className="font-mono text-xs text-muted-foreground">
-                  Previous
+                  {t("navPrevious")}
                 </p>
                 <p className="font-semibold text-foreground">
                   {prevProject.name}
@@ -339,12 +331,12 @@ export default async function CaseStudyPage({
 
           {nextProject ? (
             <Link
-              href={`/projects/${nextProject.slug}`}
-              className="group flex items-center gap-3 text-sm transition-colors hover:text-foreground text-muted-foreground text-right"
+              href={`/${locale}/projects/${nextProject.slug}`}
+              className="group flex items-center gap-3 text-right text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <div>
                 <p className="font-mono text-xs text-muted-foreground">
-                  Next Case Study
+                  {t("navNextCaseStudy")}
                 </p>
                 <p className="font-semibold text-foreground">
                   {nextProject.name}
@@ -358,5 +350,34 @@ export default async function CaseStudyPage({
         </div>
       </nav>
     </div>
+  );
+}
+
+export default async function CaseStudyPage({
+  params,
+}: {
+  params: Promise<{ locale: Locale; slug: string }>;
+}) {
+  const { locale, slug } = await params;
+  const project = getProject(slug, locale);
+  if (!project || !project.hasCaseStudy) notFound();
+
+  const caseStudies = getAllProjects(locale).filter((p) => p.hasCaseStudy);
+  const caseIndex = caseStudies.findIndex((p) => p.slug === slug);
+  const prevProject = caseStudies[caseIndex - 1] ?? null;
+  const nextProject = caseStudies[caseIndex + 1] ?? null;
+
+  const heroImage = project.screenshots[0];
+  const galleryImages = project.screenshots.slice(1);
+
+  return (
+    <CaseStudyContent
+      project={project}
+      prevProject={prevProject}
+      nextProject={nextProject}
+      heroImage={heroImage}
+      galleryImages={galleryImages}
+      locale={locale}
+    />
   );
 }

@@ -3,34 +3,35 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
+import { useTranslations } from "next-intl";
 import * as THREE from "three";
 
 import { usePrefersReducedMotion } from "./use-device";
 
-const COMMAND_TEXT = 'console.log("Hello World")';
-const OUTPUT_TEXT = "Hello World";
 const COMMAND_FONT_SIZE = 0.12;
 const HEADER_FONT_SIZE = 0.055;
 const CHAR_WIDTH = 0.065;
 const CURSOR_HEIGHT = 0.125;
 const CURSOR_WIDTH = 0.022;
 
-const SEGMENTS = [
-  { text: "console", color: "#9CA3AF" },
-  { text: ".log", color: "#FFFFFF" },
-  { text: "(", color: "#9CA3AF" },
-  { text: '"Hello World"', color: "#06B6D4" },
-  { text: ")", color: "#9CA3AF" },
-] as const;
-
 function renderVisibleSegment(text: string, visibleChars: number) {
   return visibleChars > 0 ? text.slice(0, visibleChars) : "";
 }
 
 export function MonitorHelloWorld3D() {
+  const t = useTranslations("hero");
   const prefersReducedMotion = usePrefersReducedMotion();
+  const commandText = t("monitorCommand");
+  const outputText = t("monitorOutput");
+  const segments = [
+    { text: "console", color: "#9CA3AF" },
+    { text: ".log", color: "#FFFFFF" },
+    { text: "(", color: "#9CA3AF" },
+    { text: `"${outputText}"`, color: "#06B6D4" },
+    { text: ")", color: "#9CA3AF" },
+  ] as const;
   const [typedCount, setTypedCount] = useState(
-    prefersReducedMotion ? COMMAND_TEXT.length : 0,
+    prefersReducedMotion ? commandText.length : 0,
   );
   const [showOutput, setShowOutput] = useState(prefersReducedMotion);
   const cursorRef = useRef<THREE.Mesh>(null);
@@ -39,7 +40,7 @@ export function MonitorHelloWorld3D() {
   const visibleSegments = useMemo(() => {
     let remaining = typedCount;
 
-    return SEGMENTS.map((segment) => {
+    return segments.map((segment) => {
       const visibleText = renderVisibleSegment(segment.text, remaining);
       remaining = Math.max(0, remaining - segment.text.length);
       return {
@@ -47,11 +48,11 @@ export function MonitorHelloWorld3D() {
         visibleText,
       };
     });
-  }, [typedCount]);
+  }, [segments, typedCount]);
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setTypedCount(COMMAND_TEXT.length);
+      setTypedCount(commandText.length);
       setShowOutput(true);
       return;
     }
@@ -65,7 +66,7 @@ export function MonitorHelloWorld3D() {
       let current = 0;
 
       const typeNext = () => {
-        if (current < COMMAND_TEXT.length) {
+        if (current < commandText.length) {
           current += 1;
           setTypedCount(current);
           timeoutId = window.setTimeout(
@@ -91,7 +92,7 @@ export function MonitorHelloWorld3D() {
         window.clearTimeout(timeoutId);
       }
     };
-  }, [prefersReducedMotion]);
+  }, [commandText, prefersReducedMotion]);
 
   useFrame((state) => {
     if (cursorRef.current) {
@@ -164,7 +165,7 @@ export function MonitorHelloWorld3D() {
         anchorY="middle"
         position={[-0.6, 0.38, 0.01]}
       >
-        hello-world.ts
+        {t("monitorFileName")}
       </Text>
 
       {visibleSegments.map((segment) => {
@@ -216,7 +217,7 @@ export function MonitorHelloWorld3D() {
             anchorY="middle"
             position={[commandLeft, outputY, 0.01]}
           >
-            {OUTPUT_TEXT}
+            {outputText}
           </Text>
         </group>
       ) : null}

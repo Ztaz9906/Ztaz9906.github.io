@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BlogDiagramShell, useDiagramContainer } from "./_shared";
 
 function ContextBox({
@@ -63,6 +64,7 @@ function ContextBox({
 }
 
 export function DDDBoundedContextsDiagram() {
+  const t = useTranslations("blog");
   const container = useDiagramContainer();
 
   return (
@@ -70,7 +72,7 @@ export function DDDBoundedContextsDiagram() {
       <svg
         viewBox="0 0 900 450"
         className="h-full w-full font-mono"
-        aria-label="DDD bounded contexts communicating through domain events"
+        aria-label={t("diagramDddContextsAriaLabel")}
       >
         <defs>
           <marker
@@ -88,21 +90,33 @@ export function DDDBoundedContextsDiagram() {
 
         <ContextBox
           x={52}
-          title="Orders Context"
+          title={t("diagramDddOrdersContext")}
           color="blue"
-          labels={["Order Entity", "Checkout Aggregate", "Order Repository"]}
+          labels={[
+            t("diagramDddOrderEntity"),
+            t("diagramDddCheckoutAggregate"),
+            t("diagramDddOrderRepository"),
+          ]}
         />
         <ContextBox
           x={360}
-          title="Inventory Context"
+          title={t("diagramDddInventoryContext")}
           color="purple"
-          labels={["Stock Entity", "Reservation Aggregate", "Inventory Repo"]}
+          labels={[
+            t("diagramDddStockEntity"),
+            t("diagramDddReservationAggregate"),
+            t("diagramDddInventoryRepo"),
+          ]}
         />
         <ContextBox
           x={668}
-          title="Billing Context"
+          title={t("diagramDddBillingContext")}
           color="cyan"
-          labels={["Invoice Entity", "Payment Aggregate", "Billing Repo"]}
+          labels={[
+            t("diagramDddInvoiceEntity"),
+            t("diagramDddPaymentAggregate"),
+            t("diagramDddBillingRepo"),
+          ]}
         />
 
         <path
@@ -134,7 +148,7 @@ export function DDDBoundedContextsDiagram() {
           fill="var(--color-cyan)"
           fontSize="9"
         >
-          Domain Event
+          {t("diagramDddDomainEvent")}
         </text>
         <text
           className="diagram-label"
@@ -144,7 +158,7 @@ export function DDDBoundedContextsDiagram() {
           fill="var(--color-cyan)"
           fontSize="9"
         >
-          Domain Event
+          {t("diagramDddDomainEvent")}
         </text>
 
         <text
@@ -155,8 +169,7 @@ export function DDDBoundedContextsDiagram() {
           fill="var(--color-muted-foreground)"
           fontSize="11"
         >
-          Bounded contexts stay isolated; integration crosses boundaries only as
-          events.
+          {t("diagramDddIsolatedContexts")}
         </text>
       </svg>
     </BlogDiagramShell>

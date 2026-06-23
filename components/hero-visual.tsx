@@ -1,19 +1,15 @@
 import { Terminal } from "lucide-react"
+import { useTranslations } from "next-intl"
 
-const READOUT = [
-  { cmd: "> whoami", out: "Enrique Ferreiro — Software Engineer" },
-  { cmd: "> stack", out: "Next.js · TypeScript · Python" },
-  { cmd: "> architecture", out: "DDD · CQRS · Event-Driven" },
-  { cmd: "> status", out: "Available for new projects" },
-]
-
-/**
- * HeroVisual — isolated visual surface for the hero.
- * Currently renders a monospace "system readout" terminal panel.
- * This boundary is intentionally self-contained so a 3D scene can be
- * dropped in later without restructuring the hero or page.
- */
 export function HeroVisual() {
+  const t = useTranslations("hero")
+  const readout = [
+    { cmd: t("visualCmdWhoami"), out: t("visualOutRole") },
+    { cmd: t("visualCmdStack"), out: t("visualOutStack") },
+    { cmd: t("visualCmdArchitecture"), out: t("visualOutArchitecture") },
+    { cmd: t("visualCmdStatus"), out: t("visualOutStatus") },
+  ]
+
   return (
     <div className="relative w-full">
       <div
@@ -27,11 +23,11 @@ export function HeroVisual() {
           <span className="size-3 rounded-full bg-[#28C840]" />
           <div className="ml-2 flex items-center gap-2 text-xs text-muted-foreground">
             <Terminal className="size-3.5" />
-            <span className="font-mono">system_readout.sh</span>
+            <span className="font-mono">{t("visualFileName")}</span>
           </div>
         </div>
         <div className="space-y-3 p-5 font-mono text-sm">
-          {READOUT.map((line) => (
+          {readout.map((line) => (
             <div key={line.cmd} className="space-y-1">
               <p className="text-cyan">{line.cmd}</p>
               <p className="pl-3 text-foreground/90">

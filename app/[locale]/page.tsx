@@ -10,7 +10,12 @@ import { HomeTerminalFallback } from "@/components/terminal/HomeTerminalFallback
 import { Contact } from "@/components/sections/contact"
 import { Footer } from "@/components/footer"
 
-export default function Home() {
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ locale: "en" | "es" }>
+}) {
+  const { locale } = await params
   return (
     <>
       <Navbar />
@@ -18,7 +23,7 @@ export default function Home() {
         <Hero />
         <About />
         <Experience />
-        <Projects />
+        <Projects locale={locale} />
         <ArchitectureSection />
         <Skills />
         <Stats />

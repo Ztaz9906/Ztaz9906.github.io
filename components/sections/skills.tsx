@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl"
 import { SectionHeading } from "@/components/section-heading"
 import { Reveal } from "@/components/reveal"
 import { SKILLS } from "@/lib/data"
@@ -41,110 +42,122 @@ const SKILL_ICONS: Record<string, string> = {
   Jest: "/iconos/jest.svg",
 }
 
-const PLANETS: PlanetData[] = [
-  {
-    category: "Languages",
-    color: "#60a5fa", // blue-400
-    orbitRadius: 5,
-    orbitSpeed: 0.18,
-    size: 0.45,
-    skills: [
-      { name: "JavaScript", level: "Advanced", years: 4 },
-      { name: "TypeScript", level: "Advanced", years: 4 },
-      { name: "Python", level: "Intermediate", years: 3 },
-    ],
-  },
-  {
-    category: "Frontend",
-    color: "#818cf8", // indigo-400
-    orbitRadius: 8,
-    orbitSpeed: 0.12,
-    size: 0.65,
-    skills: [
-      { name: "React", level: "Advanced", years: 4 },
-      { name: "Next.js", level: "Advanced", years: 3 },
-      { name: "Astro", level: "Intermediate", years: 1 },
-      { name: "Redux Toolkit", level: "Advanced", years: 3 },
-      { name: "Tailwind CSS", level: "Advanced", years: 4 },
-      { name: "shadcn/ui", level: "Advanced", years: 2 },
-      { name: "Radix UI", level: "Intermediate", years: 2 },
-    ],
-  },
-  {
-    category: "Backend",
-    color: "#34d399", // emerald-400
-    orbitRadius: 11,
-    orbitSpeed: 0.09,
-    size: 0.6,
-    skills: [
-      { name: "Node.js", level: "Intermediate", years: 3 },
-      { name: "Django", level: "Advanced", years: 3 },
-      { name: "Supabase", level: "Intermediate", years: 2 },
-      { name: "Firebase", level: "Intermediate", years: 3 },
-      { name: "GraphQL", level: "Intermediate", years: 2 },
-      { name: "REST APIs", level: "Advanced", years: 4 },
-    ],
-  },
-  {
-    category: "Architecture",
-    color: "#a78bfa", // violet-400
-    orbitRadius: 14,
-    orbitSpeed: 0.07,
-    size: 0.55,
-    skills: [
-      { name: "SOLID", level: "Advanced", years: 3 },
-      { name: "DDD", level: "Advanced", years: 3 },
-      { name: "Clean Architecture", level: "Advanced", years: 3 },
-      { name: "Event-Driven (SSE)", level: "Advanced", years: 2 },
-      { name: "CQRS", level: "Intermediate", years: 2 },
-    ],
-  },
-  {
-    category: "Databases",
-    color: "#93c5fd", // blue-300
-    orbitRadius: 17,
-    orbitSpeed: 0.055,
-    size: 0.5,
-    skills: [
-      { name: "PostgreSQL", level: "Advanced", years: 3 },
-      { name: "Prisma", level: "Advanced", years: 2 },
-      { name: "TypeORM", level: "Intermediate", years: 2 },
-      { name: "Drizzle ORM", level: "Intermediate", years: 1 },
-    ],
-  },
-  {
-    category: "Services",
-    color: "#67e8f9", // cyan-300
-    orbitRadius: 20,
-    orbitSpeed: 0.045,
-    size: 0.55,
-    skills: [
-      { name: "Stripe", level: "Advanced", years: 2 },
-      { name: "Supabase Auth", level: "Intermediate", years: 2 },
-      { name: "Google OAuth", level: "Advanced", years: 3 },
-      { name: "Ably Realtime", level: "Intermediate", years: 1 },
-      { name: "Mapbox", level: "Intermediate", years: 1 },
-    ],
-  },
-  {
-    category: "Tools",
-    color: "#7dd3fc", // light-blue-300
-    orbitRadius: 23,
-    orbitSpeed: 0.035,
-    size: 0.45,
-    skills: [
-      { name: "Git", level: "Advanced", years: 4 },
-      { name: "GitHub", level: "Advanced", years: 4 },
-      { name: "CI/CD", level: "Intermediate", years: 2 },
-      { name: "Jest", level: "Intermediate", years: 2 },
-      { name: "Docker", level: "Intermediate", years: 2 },
-    ],
-  },
-];
+const SKILL_CATEGORY_KEYS: Record<string, string> = {
+  Languages: "categoryLanguages",
+  Frontend: "categoryFrontend",
+  Backend: "categoryBackend",
+  Architecture: "categoryArchitecture",
+  Databases: "categoryDatabases",
+  Services: "categoryServices",
+  "Services & Payments": "categoryServicesAndPayments",
+  Tools: "categoryTools",
+}
 
 export function Skills() {
+  const t = useTranslations("skills")
   const sectionRef = useRef<HTMLElement>(null)
   const [isSceneActive, setIsSceneActive] = useState(false)
+
+  const planets: PlanetData[] = [
+    {
+      category: t("categoryLanguages"),
+      color: "#60a5fa",
+      orbitRadius: 5,
+      orbitSpeed: 0.18,
+      size: 0.45,
+      skills: [
+        { name: "JavaScript", level: t("levelAdvanced"), years: 4 },
+        { name: "TypeScript", level: t("levelAdvanced"), years: 4 },
+        { name: "Python", level: t("levelIntermediate"), years: 3 },
+      ],
+    },
+    {
+      category: t("categoryFrontend"),
+      color: "#818cf8",
+      orbitRadius: 8,
+      orbitSpeed: 0.12,
+      size: 0.65,
+      skills: [
+        { name: "React", level: t("levelAdvanced"), years: 4 },
+        { name: "Next.js", level: t("levelAdvanced"), years: 3 },
+        { name: "Astro", level: t("levelIntermediate"), years: 1 },
+        { name: "Redux Toolkit", level: t("levelAdvanced"), years: 3 },
+        { name: "Tailwind CSS", level: t("levelAdvanced"), years: 4 },
+        { name: "shadcn/ui", level: t("levelAdvanced"), years: 2 },
+        { name: "Radix UI", level: t("levelIntermediate"), years: 2 },
+      ],
+    },
+    {
+      category: t("categoryBackend"),
+      color: "#34d399",
+      orbitRadius: 11,
+      orbitSpeed: 0.09,
+      size: 0.6,
+      skills: [
+        { name: "Node.js", level: t("levelIntermediate"), years: 3 },
+        { name: "Django", level: t("levelAdvanced"), years: 3 },
+        { name: "Supabase", level: t("levelIntermediate"), years: 2 },
+        { name: "Firebase", level: t("levelIntermediate"), years: 3 },
+        { name: "GraphQL", level: t("levelIntermediate"), years: 2 },
+        { name: "REST APIs", level: t("levelAdvanced"), years: 4 },
+      ],
+    },
+    {
+      category: t("categoryArchitecture"),
+      color: "#a78bfa",
+      orbitRadius: 14,
+      orbitSpeed: 0.07,
+      size: 0.55,
+      skills: [
+        { name: "SOLID", level: t("levelAdvanced"), years: 3 },
+        { name: "DDD", level: t("levelAdvanced"), years: 3 },
+        { name: "Clean Architecture", level: t("levelAdvanced"), years: 3 },
+        { name: "Event-Driven (SSE)", level: t("levelAdvanced"), years: 2 },
+        { name: "CQRS", level: t("levelIntermediate"), years: 2 },
+      ],
+    },
+    {
+      category: t("categoryDatabases"),
+      color: "#93c5fd",
+      orbitRadius: 17,
+      orbitSpeed: 0.055,
+      size: 0.5,
+      skills: [
+        { name: "PostgreSQL", level: t("levelAdvanced"), years: 3 },
+        { name: "Prisma", level: t("levelAdvanced"), years: 2 },
+        { name: "TypeORM", level: t("levelIntermediate"), years: 2 },
+        { name: "Drizzle ORM", level: t("levelIntermediate"), years: 1 },
+      ],
+    },
+    {
+      category: t("categoryServices"),
+      color: "#67e8f9",
+      orbitRadius: 20,
+      orbitSpeed: 0.045,
+      size: 0.55,
+      skills: [
+        { name: "Stripe", level: t("levelAdvanced"), years: 2 },
+        { name: "Supabase Auth", level: t("levelIntermediate"), years: 2 },
+        { name: "Google OAuth", level: t("levelAdvanced"), years: 3 },
+        { name: "Ably Realtime", level: t("levelIntermediate"), years: 1 },
+        { name: "Mapbox", level: t("levelIntermediate"), years: 1 },
+      ],
+    },
+    {
+      category: t("categoryTools"),
+      color: "#7dd3fc",
+      orbitRadius: 23,
+      orbitSpeed: 0.035,
+      size: 0.45,
+      skills: [
+        { name: "Git", level: t("levelAdvanced"), years: 4 },
+        { name: "GitHub", level: t("levelAdvanced"), years: 4 },
+        { name: "CI/CD", level: t("levelIntermediate"), years: 2 },
+        { name: "Jest", level: t("levelIntermediate"), years: 2 },
+        { name: "Docker", level: t("levelIntermediate"), years: 2 },
+      ],
+    },
+  ]
 
   useEffect(() => {
     const element = sectionRef.current
@@ -170,7 +183,7 @@ export function Skills() {
         <Reveal key={group.category} delay={(i % 3) * 80}>
           <div className="rounded-xl border border-border bg-card p-5 h-full">
             <h3 className="mb-4 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              {group.category}
+              {t(SKILL_CATEGORY_KEYS[group.category])}
             </h3>
             <div className="flex flex-wrap gap-2">
               {group.items.map((skill) => (
@@ -201,17 +214,21 @@ export function Skills() {
     <section ref={sectionRef} id="skills" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="// 04"
-        title="Skills & Tooling"
-        description="The technologies I reach for to build reliable, scalable systems."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="mt-12">
         <div className="mb-5 rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
-          Hover a planet to preview it. Click a planet to lock focus, use your mouse wheel to zoom, hover a label to freeze it, and press <span className="font-mono text-foreground">Esc</span> to exit focus.
+          {t.rich("helperInstructions", {
+            key: (chunks) => (
+              <span className="font-mono text-foreground">{chunks}</span>
+            ),
+          })}
         </div>
         {isSceneActive ? (
           <Suspense fallback={gridFallback}>
-            <SkillsGalaxy planets={PLANETS} fallback={gridFallback} />
+            <SkillsGalaxy planets={planets} fallback={gridFallback} />
           </Suspense>
         ) : (
           gridFallback

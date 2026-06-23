@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { CheckCircle2, Download, Github, Linkedin, Mail, Send } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,30 +11,29 @@ import { SectionHeading } from "@/components/section-heading"
 import { Reveal } from "@/components/reveal"
 import { SOCIALS } from "@/lib/data"
 
-const CONTACT_LINKS = [
-  { icon: Mail, label: "Email", value: SOCIALS.email, href: `mailto:${SOCIALS.email}` },
-  { icon: Linkedin, label: "LinkedIn", value: "Connect with me", href: SOCIALS.linkedin },
-  { icon: Github, label: "GitHub", value: "@Ztaz9906", href: SOCIALS.github },
-  { icon: Download, label: "Resume", value: "Download CV", href: SOCIALS.resume },
-]
-
 type Fields = "name" | "email" | "message"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function validate(values: Record<Fields, string>) {
+function validate(
+  values: Record<Fields, string>,
+  t: ReturnType<typeof useTranslations<"contact">>,
+) {
   const errors: Partial<Record<Fields, string>> = {}
-  if (!values.name.trim()) errors.name = "Please enter your name."
-  if (!values.email.trim()) errors.email = "Please enter your email."
-  else if (!EMAIL_RE.test(values.email.trim()))
-    errors.email = "Please enter a valid email address."
-  if (!values.message.trim()) errors.message = "Please enter a message."
-  else if (values.message.trim().length < 10)
-    errors.message = "Message should be at least 10 characters."
+  if (!values.name.trim()) errors.name = t("validationNameRequired")
+  if (!values.email.trim()) errors.email = t("validationEmailRequired")
+  else if (!EMAIL_RE.test(values.email.trim())) {
+    errors.email = t("validationEmailInvalid")
+  }
+  if (!values.message.trim()) errors.message = t("validationMessageRequired")
+  else if (values.message.trim().length < 10) {
+    errors.message = t("validationMessageMin")
+  }
   return errors
 }
 
 export function Contact() {
+  const t = useTranslations("contact")
   const [values, setValues] = React.useState<Record<Fields, string>>({
     name: "",
     email: "",
@@ -47,21 +47,48 @@ export function Contact() {
   )
   const [sent, setSent] = React.useState(false)
 
+  const contactLinks = [
+    {
+      icon: Mail,
+      label: t("linkEmail"),
+      value: SOCIALS.email,
+      href: `mailto:${SOCIALS.email}`,
+    },
+    {
+      icon: Linkedin,
+      label: t("linkLinkedin"),
+      value: t("linkValueConnectWithMe"),
+      href: SOCIALS.linkedin,
+    },
+    {
+      icon: Github,
+      label: t("linkGithub"),
+      value: t("linkValueGithubHandle"),
+      href: SOCIALS.github,
+    },
+    {
+      icon: Download,
+      label: t("linkResume"),
+      value: t("linkValueDownloadCv"),
+      href: SOCIALS.resume,
+    },
+  ]
+
   const update = (field: Fields, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }))
     if (touched[field]) {
-      setErrors(validate({ ...values, [field]: value }))
+      setErrors(validate({ ...values, [field]: value }, t))
     }
   }
 
   const onBlur = (field: Fields) => {
     setTouched((prev) => ({ ...prev, [field]: true }))
-    setErrors(validate(values))
+    setErrors(validate(values, t))
   }
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const nextErrors = validate(values)
+    const nextErrors = validate(values, t)
     setErrors(nextErrors)
     setTouched({ name: true, email: true, message: true })
     if (Object.keys(nextErrors).length > 0) return
@@ -74,14 +101,14 @@ export function Contact() {
     <section id="contact" className="mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32">
       <SectionHeading
         eyebrow="// 05"
-        title="Let's build something together"
-        description="Open to new opportunities, freelance projects, and interesting problems."
+        title={t("title")}
+        description={t("description")}
       />
 
       <div className="mt-12 grid gap-5 lg:grid-cols-[1fr_1.2fr]">
         <Reveal>
           <div className="grid h-full grid-cols-1 gap-3 sm:grid-cols-2">
-            {CONTACT_LINKS.map((item) => {
+            {contactLinks.map((item) => {
               const Icon = item.icon
               return (
                 <a
@@ -110,12 +137,12 @@ export function Contact() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <label htmlFor="name" className="text-sm font-medium">
-                    Name
+                    {t("formLabelName")}
                   </label>
                   <Input
                     id="name"
                     name="name"
-                    placeholder="Jane Doe"
+                    placeholder={t("placeholderName")}
                     value={values.name}
                     onChange={(e) => update("name", e.target.value)}
                     onBlur={() => onBlur("name")}
@@ -135,13 +162,13 @@ export function Contact() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <label htmlFor="email" className="text-sm font-medium">
-                    Email
+                    {t("formLabelEmail")}
                   </label>
                   <Input
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="jane@company.com"
+                    placeholder={t("placeholderEmail")}
                     value={values.email}
                     onChange={(e) => update("email", e.target.value)}
                     onBlur={() => onBlur("email")}
@@ -162,19 +189,17 @@ export function Contact() {
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="message" className="text-sm font-medium">
-                  Message
+                  {t("formLabelMessage")}
                 </label>
                 <Textarea
                   id="message"
                   name="message"
-                  placeholder="Tell me about your project..."
+                  placeholder={t("placeholderMessage")}
                   value={values.message}
                   onChange={(e) => update("message", e.target.value)}
                   onBlur={() => onBlur("message")}
                   aria-invalid={!!errors.message}
-                  aria-describedby={
-                    errors.message ? "message-error" : undefined
-                  }
+                  aria-describedby={errors.message ? "message-error" : undefined}
                   className={
                     errors.message
                       ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40"
@@ -194,7 +219,7 @@ export function Contact() {
                 className="mt-1"
               >
                 <Send className="size-4" />
-                Send Message
+                {t("submitSendMessage")}
               </Button>
               {sent && (
                 <div
@@ -202,8 +227,7 @@ export function Contact() {
                   className="flex items-center gap-2 rounded-lg border border-cyan/30 bg-cyan/10 px-4 py-3 text-sm text-cyan"
                 >
                   <CheckCircle2 className="size-4 shrink-0" />
-                  Thanks! Your message looks good — backend wiring is coming
-                  soon.
+                  {t("successMessage")}
                 </div>
               )}
             </form>

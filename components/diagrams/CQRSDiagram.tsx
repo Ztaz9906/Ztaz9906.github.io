@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef } from "react"
+import { useTranslations } from "next-intl"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
 import { useGSAP } from "@gsap/react"
@@ -10,6 +11,7 @@ if (typeof window !== "undefined") {
 }
 
 export function CQRSDiagram() {
+  const t = useTranslations("common")
   const container = useRef<HTMLDivElement>(null)
 
   useGSAP(
@@ -40,7 +42,7 @@ export function CQRSDiagram() {
       <svg
         viewBox="0 0 640 320"
         className="w-full max-w-2xl overflow-visible font-mono text-xs"
-        aria-label="CQRS diagram"
+        aria-label={t("cqrsAriaLabel")}
       >
         <defs>
           <marker
@@ -67,17 +69,6 @@ export function CQRSDiagram() {
           </marker>
         </defs>
 
-        {/*
-          CQRS Dependency flow:
-          - Commands → Write Model: commands carry intent to mutate state
-          - Write Model persists and may raise Domain Events
-          - Read Model is a separate projection updated independently
-          - Queries → Read Model: queries read from an optimized read store
-          The critical point: Commands and Queries NEVER share the same model.
-          Arrow direction: A→B means "A sends to / depends on B".
-        */}
-
-        {/* Command → Write Model */}
         <path
           className="anim-line"
           d="M 130 80 L 200 80"
@@ -88,8 +79,6 @@ export function CQRSDiagram() {
           pathLength="100"
           markerEnd="url(#cqrs-arrow-blue)"
         />
-
-        {/* Query → Read Model */}
         <path
           className="anim-line"
           d="M 130 240 L 200 240"
@@ -100,8 +89,6 @@ export function CQRSDiagram() {
           pathLength="100"
           markerEnd="url(#cqrs-arrow-purple)"
         />
-
-        {/* Write Model ──event──▶ Read Model (async projection/sync) */}
         <path
           className="anim-line"
           d="M 360 100 C 420 100, 420 220, 360 220"
@@ -113,9 +100,6 @@ export function CQRSDiagram() {
           markerEnd="url(#cqrs-arrow-blue)"
         />
 
-        {/* ── Left column: Command and Query ── */}
-
-        {/* Command */}
         <g transform="translate(20, 54)">
           <rect
             width="110"
@@ -133,7 +117,7 @@ export function CQRSDiagram() {
             fontWeight="bold"
             fontSize="12"
           >
-            Command
+            {t("cqrsCommandTitle")}
           </text>
           <text
             x="55"
@@ -142,11 +126,10 @@ export function CQRSDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="9"
           >
-            intent to change
+            {t("cqrsCommandSubtitle")}
           </text>
         </g>
 
-        {/* Query */}
         <g transform="translate(20, 214)">
           <rect
             width="110"
@@ -164,7 +147,7 @@ export function CQRSDiagram() {
             fontWeight="bold"
             fontSize="12"
           >
-            Query
+            {t("cqrsQueryTitle")}
           </text>
           <text
             x="55"
@@ -173,13 +156,10 @@ export function CQRSDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="9"
           >
-            read only
+            {t("cqrsQuerySubtitle")}
           </text>
         </g>
 
-        {/* ── Center: Write Model and Read Model (THE split) ── */}
-
-        {/* Write Model */}
         <g transform="translate(200, 54)">
           <rect
             width="160"
@@ -197,7 +177,7 @@ export function CQRSDiagram() {
             fontWeight="bold"
             fontSize="12"
           >
-            Write Model
+            {t("cqrsWriteModelTitle")}
           </text>
           <text
             x="80"
@@ -206,7 +186,7 @@ export function CQRSDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="9"
           >
-            aggregates, domain logic
+            {t("cqrsWriteModelSubtitleOne")}
           </text>
           <text
             x="80"
@@ -215,11 +195,10 @@ export function CQRSDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="9"
           >
-            raises domain events
+            {t("cqrsWriteModelSubtitleTwo")}
           </text>
         </g>
 
-        {/* Read Model */}
         <g transform="translate(200, 214)">
           <rect
             width="160"
@@ -237,7 +216,7 @@ export function CQRSDiagram() {
             fontWeight="bold"
             fontSize="12"
           >
-            Read Model
+            {t("cqrsReadModelTitle")}
           </text>
           <text
             x="80"
@@ -246,7 +225,7 @@ export function CQRSDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="9"
           >
-            projection / view store
+            {t("cqrsReadModelSubtitleOne")}
           </text>
           <text
             x="80"
@@ -255,11 +234,10 @@ export function CQRSDiagram() {
             fill="var(--color-muted-foreground)"
             fontSize="9"
           >
-            optimized for reads
+            {t("cqrsReadModelSubtitleTwo")}
           </text>
         </g>
 
-        {/* Event label on the sync arrow */}
         <text
           x="428"
           y="158"
@@ -268,7 +246,7 @@ export function CQRSDiagram() {
           fontSize="9"
           fontStyle="italic"
         >
-          domain event
+          {t("cqrsDomainEvent")}
         </text>
         <text
           x="428"
@@ -278,10 +256,9 @@ export function CQRSDiagram() {
           fontSize="9"
           fontStyle="italic"
         >
-          / projection
+          {t("cqrsProjection")}
         </text>
 
-        {/* Divider between the two sides — emphasises the read/write split */}
         <line
           x1="180"
           y1="20"
@@ -298,7 +275,7 @@ export function CQRSDiagram() {
           fill="var(--color-muted-foreground)"
           fontSize="8"
         >
-          write
+          {t("cqrsWrite")}
         </text>
         <text
           x="280"
@@ -307,7 +284,7 @@ export function CQRSDiagram() {
           fill="var(--color-muted-foreground)"
           fontSize="8"
         >
-          read/write split ↕
+          {t("cqrsReadWriteSplit")}
         </text>
       </svg>
     </div>

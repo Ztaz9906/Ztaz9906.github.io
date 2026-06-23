@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BlogDiagramShell, useDiagramContainer } from "./_shared";
 
 function Box({
@@ -56,6 +57,7 @@ function Box({
 }
 
 export function AblyChannelDiagram() {
+  const t = useTranslations("blog");
   const container = useDiagramContainer();
 
   return (
@@ -63,7 +65,7 @@ export function AblyChannelDiagram() {
       <svg
         viewBox="0 0 900 450"
         className="h-full w-full font-mono"
-        aria-label="Ably channel with publisher, presence, and subscriber fan out"
+        aria-label={t("diagramAblyAriaLabel")}
       >
         <defs>
           <marker
@@ -83,32 +85,32 @@ export function AblyChannelDiagram() {
           x={56}
           y={194}
           width={168}
-          title="Driver App"
-          subtitle="publisher"
+          title={t("diagramAblyDriverApp")}
+          subtitle={t("diagramAblyPublisher")}
           color="blue"
         />
         <Box
           x={354}
           y={194}
           width={192}
-          title="Ably Channel"
-          subtitle="pub/sub stream"
+          title={t("diagramAblyChannel")}
+          subtitle={t("diagramAblyPubSubStream")}
           color="cyan"
         />
         <Box
           x={654}
           y={104}
           width={190}
-          title="Customer App"
-          subtitle="subscriber"
+          title={t("diagramAblyCustomerApp")}
+          subtitle={t("diagramAblySubscriber")}
           color="purple"
         />
         <Box
           x={632}
           y={286}
           width={212}
-          title="Dispatch Dashboard"
-          subtitle="subscriber"
+          title={t("diagramAblyDispatchDashboard")}
+          subtitle={t("diagramAblySubscriber")}
           color="purple"
         />
 
@@ -131,7 +133,7 @@ export function AblyChannelDiagram() {
           fill="var(--color-cyan)"
           fontSize="9"
         >
-          Presence
+          {t("diagramAblyPresence")}
         </text>
 
         {[
@@ -160,7 +162,7 @@ export function AblyChannelDiagram() {
           fill="var(--color-blue)"
           fontSize="10"
         >
-          publish
+          {t("diagramAblyPublish")}
         </text>
         <text
           className="diagram-label"
@@ -170,7 +172,7 @@ export function AblyChannelDiagram() {
           fill="var(--color-purple)"
           fontSize="10"
         >
-          subscribe
+          {t("diagramAblySubscribe")}
         </text>
         <text
           className="diagram-label"
@@ -180,7 +182,7 @@ export function AblyChannelDiagram() {
           fill="var(--color-purple)"
           fontSize="10"
         >
-          subscribe
+          {t("diagramAblySubscribe")}
         </text>
       </svg>
     </BlogDiagramShell>

@@ -3,16 +3,18 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-interface RevealProps extends React.HTMLAttributes<HTMLDivElement> {
-  as?: React.ElementType
+interface RevealProps extends React.HTMLAttributes<HTMLElement> {
+  as?: keyof React.JSX.IntrinsicElements
   delay?: number
+  children?: React.ReactNode
 }
 
 export function Reveal({
-  as: Tag = "div",
+  as = "div",
   delay = 0,
   className,
   children,
+  style,
   ...props
 }: RevealProps) {
   const ref = React.useRef<HTMLElement | null>(null)
@@ -45,14 +47,17 @@ export function Reveal({
     return () => observer.disconnect()
   }, [])
 
-  return (
-    <Tag
-      ref={ref}
-      style={{ transitionDelay: `${delay}ms` }}
-      className={cn("reveal", visible && "is-visible", className)}
-      {...props}
-    >
-      {children}
-    </Tag>
+  return React.createElement(
+    as,
+    {
+      ...props,
+      ref,
+      style: {
+        ...style,
+        transitionDelay: `${delay}ms`,
+      },
+      className: cn("reveal", visible && "is-visible", className),
+    },
+    children,
   )
 }
