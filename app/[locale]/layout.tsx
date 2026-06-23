@@ -76,7 +76,7 @@ export async function generateMetadata({
           url: "/og/home.png",
           width: 1200,
           height: 630,
-          alt: `Enrique Ferreiro · ${t.jobTitle}`,
+          alt: `Enrique Ferreiro - ${t.jobTitle}`,
         },
       ], // SEO FIX - i18n metadata
       type: "website", // SEO FIX - i18n metadata
