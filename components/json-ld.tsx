@@ -16,7 +16,10 @@ export function PersonSchema() {
     name: "Enrique Ferreiro",
     url: BASE_URL,
     jobTitle: "Software Engineer",
-    sameAs: ["URL_GITHUB", "URL_LINKEDIN"],
+    sameAs: [
+      "https://github.com/Ztaz9906",
+      "https://linkedin.com/in/enriquefa",
+    ],
   };
 
   return <JsonLd schema={schema} />;
