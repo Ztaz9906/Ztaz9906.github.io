@@ -43,13 +43,11 @@ export default async function Image({
 }) {
   const { locale, slug } = await params;
   const title = blogTitles[locale]?.[slug] ?? titleFromSlug(slug);
+  const subtitle = "Blog · Enrique Ferreiro";
   const titleSize = title.length > 58 ? 46 : 54;
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-  const portrait = await fetch(`${baseUrl}/portrait.png`).then((r) =>
-    r.arrayBuffer(),
-  );
+  const portrait = await fetch( // SEO FIX
+    new URL("../../../../public/portrait.png", import.meta.url), // SEO FIX
+  ).then((r) => r.arrayBuffer()); // SEO FIX
 
   return new ImageResponse(
     (
@@ -80,7 +78,7 @@ export default async function Image({
               fontWeight: 500,
             }}
           >
-            Blog · Enrique Ferreiro
+            {subtitle}
           </div>
 
           <div

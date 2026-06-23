@@ -6,13 +6,17 @@ export const contentType = "image/png";
 
 const tags = ["DDD", "CQRS", "Event-Driven", "Next.js", "TypeScript"];
 
-export default async function Image() {
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-  const portrait = await fetch(`${baseUrl}/portrait.png`).then((r) =>
-    r.arrayBuffer(),
-  );
+export default async function Image({
+  params,
+}: {
+  params: Promise<{ locale: "en" | "es" }>;
+}) {
+  const { locale } = await params;
+  const subtitle =
+    locale === "es" ? "Ingeniero de software" : "Software Engineer";
+  const portrait = await fetch( // SEO FIX
+    new URL("../../public/portrait.png", import.meta.url), // SEO FIX
+  ).then((r) => r.arrayBuffer()); // SEO FIX
 
   return new ImageResponse(
     (
@@ -43,7 +47,7 @@ export default async function Image() {
               fontWeight: 500,
             }}
           >
-            Software Engineer
+            {subtitle}
           </div>
 
           <div

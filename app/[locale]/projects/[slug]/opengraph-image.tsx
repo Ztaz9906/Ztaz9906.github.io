@@ -6,6 +6,8 @@ export const runtime = "edge";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+type Locale = "en" | "es";
+
 const tags = ["DDD", "CQRS", "Event-Driven", "Next.js", "TypeScript"];
 
 function titleFromSlug(slug: string) {
@@ -18,17 +20,18 @@ function titleFromSlug(slug: string) {
 export default async function Image({
   params,
 }: {
-  params: Promise<{ locale: string; slug: string }>;
+  params: Promise<{ locale: Locale; slug: string }>;
 }) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const project = PROJECTS.find((entry) => entry.slug === slug);
   const title = project?.name ?? titleFromSlug(slug);
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-  const portrait = await fetch(`${baseUrl}/portrait.png`).then((r) =>
-    r.arrayBuffer(),
-  );
+  const subtitle =
+    locale === "es"
+      ? "Proyectos · Enrique Ferreiro"
+      : "Projects · Enrique Ferreiro";
+  const portrait = await fetch( // SEO FIX
+    new URL("../../../../public/portrait.png", import.meta.url), // SEO FIX
+  ).then((r) => r.arrayBuffer()); // SEO FIX
 
   return new ImageResponse(
     (
@@ -59,7 +62,7 @@ export default async function Image({
               fontWeight: 500,
             }}
           >
-            Projects · Enrique Ferreiro
+            {subtitle}
           </div>
 
           <div
