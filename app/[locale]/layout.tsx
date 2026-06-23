@@ -28,18 +28,20 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const metadata = { // SEO FIX - i18n metadata
-    en: { // SEO FIX - i18n metadata
-      title: "Enrique Ferreiro | Software Engineer", // SEO FIX - i18n metadata
-      description: "Software Engineer specialized in DDD, CQRS and Event-Driven architectures with Next.js, TypeScript and Python.", // SEO FIX - i18n metadata
-      jobTitle: "Software Engineer", // SEO FIX - i18n metadata
-    }, // SEO FIX - i18n metadata
-    es: { // SEO FIX - i18n metadata
-      title: "Enrique Ferreiro | Ingeniero de Software", // SEO FIX - i18n metadata
-      description: "Ingeniero de Software especializado en arquitecturas DDD, CQRS y Event-Driven con Next.js, TypeScript y Python.", // SEO FIX - i18n metadata
-      jobTitle: "Ingeniero de Software", // SEO FIX - i18n metadata
-    }, // SEO FIX - i18n metadata
-  }; // SEO FIX - i18n metadata
+  const metadata = {
+    en: {
+      title: "Enrique Ferreiro | Software Engineer",
+      description:
+        "Software Engineer specialized in DDD, CQRS and Event-Driven architectures with Next.js, TypeScript and Python.",
+      jobTitle: "Software Engineer",
+    },
+    es: {
+      title: "Enrique Ferreiro | Ingeniero de Software",
+      description:
+        "Ingeniero de Software especializado en arquitecturas DDD, CQRS y Event-Driven con Next.js, TypeScript y Python.",
+      jobTitle: "Ingeniero de Software",
+    },
+  };
   const t = metadata[locale as keyof typeof metadata] ?? metadata.en; // SEO FIX - i18n metadata
   const ogLocale = locale === "es" ? "es_ES" : "en_US"; // SEO FIX - i18n metadata
 
@@ -63,16 +65,25 @@ export async function generateMetadata({
       shortcut: "/icon.svg",
       apple: "/icon.svg",
     },
-    openGraph: { // SEO FIX - i18n metadata
+    openGraph: {
+      // SEO FIX - i18n metadata
       title: t.title, // SEO FIX - i18n metadata
       description: t.description, // SEO FIX - i18n metadata
       url: BASE_URL, // SEO FIX
       siteName: "Enrique Ferreiro", // SEO FIX
-      images: [{ url: "/og/home.png", width: 1200, height: 630, alt: `Enrique Ferreiro · ${t.jobTitle}` }], // SEO FIX - i18n metadata
+      images: [
+        {
+          url: "/og/home.png",
+          width: 1200,
+          height: 630,
+          alt: `Enrique Ferreiro · ${t.jobTitle}`,
+        },
+      ], // SEO FIX - i18n metadata
       type: "website", // SEO FIX - i18n metadata
       locale: ogLocale, // SEO FIX - i18n metadata
     },
-    twitter: { // SEO FIX
+    twitter: {
+      // SEO FIX
       card: "summary_large_image", // SEO FIX
       title: t.title, // SEO FIX - i18n metadata
       description: t.description, // SEO FIX - i18n metadata
