@@ -20,6 +20,9 @@ export async function generateMetadata({
   return {
     title: t("listingTitle"),
     description: t("listingDescription"),
+    alternates: { // SEO FIX
+      canonical: `https://ztaz9906-github-io.vercel.app/${locale}/blog`, // SEO FIX
+    }, // SEO FIX
     openGraph: {
       title: t("listingTitle"),
       description: t("listingDescription"),

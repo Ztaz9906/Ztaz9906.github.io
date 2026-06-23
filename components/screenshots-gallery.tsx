@@ -5,9 +5,11 @@ import Image from "next/image"
 import { X } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-export function ScreenshotsGallery({ images }: { images: string[] }) {
+export function ScreenshotsGallery({ images, alts }: { images: string[]; alts?: string[] }) { // SEO FIX
   const t = useTranslations("common")
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const selectedImageIndex = selectedImage ? images.indexOf(selectedImage) : -1 // SEO FIX
+  const selectedImageAlt = selectedImageIndex >= 0 ? alts?.[selectedImageIndex] ?? t("screenshotsImageAlt", { index: selectedImageIndex + 1 }) : t("screenshotsEnlargedAlt") // SEO FIX
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -39,7 +41,7 @@ export function ScreenshotsGallery({ images }: { images: string[] }) {
           >
             <Image
               src={src}
-              alt={t("screenshotsImageAlt", { index: i + 1 })}
+              alt={alts?.[i] ?? t("screenshotsImageAlt", { index: i + 1 }) /* // SEO FIX */}
               fill
               className="object-cover transition-opacity group-hover:opacity-90"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -68,7 +70,7 @@ export function ScreenshotsGallery({ images }: { images: string[] }) {
           >
             <Image
               src={selectedImage}
-              alt={t("screenshotsEnlargedAlt")}
+              alt={selectedImageAlt /* // SEO FIX */}
               fill
               className="object-contain"
               sizes="100vw"

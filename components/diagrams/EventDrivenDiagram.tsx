@@ -40,6 +40,8 @@ export function EventDrivenDiagram() {
       className="flex w-full items-center justify-center rounded-xl border border-border bg-card/20 p-8"
     >
       <svg
+        aria-label="Diagrama de arquitectura Event-Driven" // SEO FIX - aria-label
+        role="img" // SEO FIX - aria-label
         viewBox="0 0 600 300"
         className="w-full max-w-2xl overflow-visible font-mono text-xs"
       >

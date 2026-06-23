@@ -38,16 +38,17 @@ export async function generateMetadata({
   if (!project) return {};
 
   return {
-    title: `${project.name} — ${t("ctaCaseStudy")}`,
+    title: `${project.name} | ${t("ctaCaseStudy")}`,
     description: project.oneLiner,
     alternates: {
+      canonical: `https://ztaz9906-github-io.vercel.app/${locale}/projects/${slug}`, // SEO FIX
       languages: {
         en: `/en/projects/${slug}`,
         es: `/es/projects/${slug}`,
       },
     },
     openGraph: {
-      title: `${project.name} — ${t("ctaCaseStudy")}`,
+      title: `${project.name} | ${t("ctaCaseStudy")}`,
       description: project.oneLiner,
       type: "article",
     },
@@ -99,6 +100,65 @@ function MetricsBand({
     </section>
   );
 }
+
+const GALLERY_IMAGE_ALTS: Record<Locale, Record<string, string[]>> = { // SEO FIX
+  en: { // SEO FIX
+    juuz: [ // SEO FIX
+      "JUUZ live tow request map view", // SEO FIX
+      "JUUZ driver tracking and route status screen", // SEO FIX
+      "JUUZ service bidding workflow interface", // SEO FIX
+      "JUUZ customer trip details and notifications view", // SEO FIX
+      "JUUZ multilingual towing service dashboard", // SEO FIX
+    ], // SEO FIX
+    abalink: [ // SEO FIX
+      "ABALink enterprise administration dashboard", // SEO FIX
+      "ABALink modular CRUD management screen", // SEO FIX
+      "ABALink record detail and validation interface", // SEO FIX
+      "ABALink real-time synchronization status panel", // SEO FIX
+      "ABALink dynamic PDF generation workflow", // SEO FIX
+      "ABALink user management and permissions view", // SEO FIX
+      "ABALink reporting and operational metrics screen", // SEO FIX
+      "ABALink case study system overview screen", // SEO FIX
+    ], // SEO FIX
+    charge2go: [ // SEO FIX
+      "Charge2Go charging station reservations calendar", // SEO FIX
+      "Charge2Go EV charger availability management view", // SEO FIX
+      "Charge2Go real-time booking details screen", // SEO FIX
+    ], // SEO FIX
+    "el-chuletazo": [ // SEO FIX
+      "El Chuletazo product catalog and ecommerce storefront", // SEO FIX
+      "El Chuletazo checkout and payment workflow screen", // SEO FIX
+    ], // SEO FIX
+  }, // SEO FIX
+  es: { // SEO FIX
+    juuz: [ // SEO FIX
+      "Vista de mapa de solicitud de grúa en JUUZ", // SEO FIX
+      "Pantalla de seguimiento de conductor y ruta en JUUZ", // SEO FIX
+      "Interfaz de pujas de servicio en JUUZ", // SEO FIX
+      "Vista de detalles del viaje y notificaciones en JUUZ", // SEO FIX
+      "Panel multilenguaje de servicio de grúas en JUUZ", // SEO FIX
+    ], // SEO FIX
+    abalink: [ // SEO FIX
+      "Panel de administración empresarial de ABALink", // SEO FIX
+      "Pantalla de gestión CRUD modular de ABALink", // SEO FIX
+      "Interfaz de detalle y validación de registros en ABALink", // SEO FIX
+      "Panel de estado de sincronización en tiempo real de ABALink", // SEO FIX
+      "Flujo de generación dinámica de PDF en ABALink", // SEO FIX
+      "Vista de usuarios y permisos de ABALink", // SEO FIX
+      "Pantalla de reportes y métricas operativas de ABALink", // SEO FIX
+      "Vista general del sistema del caso de estudio ABALink", // SEO FIX
+    ], // SEO FIX
+    charge2go: [ // SEO FIX
+      "Calendario de reservas de estaciones de carga en Charge2Go", // SEO FIX
+      "Vista de gestión de disponibilidad de cargadores EV en Charge2Go", // SEO FIX
+      "Pantalla de detalles de reserva en tiempo real de Charge2Go", // SEO FIX
+    ], // SEO FIX
+    "el-chuletazo": [ // SEO FIX
+      "Catálogo de productos y tienda ecommerce de El Chuletazo", // SEO FIX
+      "Pantalla de checkout y flujo de pago de El Chuletazo", // SEO FIX
+    ], // SEO FIX
+  }, // SEO FIX
+}; // SEO FIX
 
 function ContentSection({
   eyebrow,
@@ -301,7 +361,10 @@ async function CaseStudyContent({
               {t("sectionScreenshotsTitle")}
             </h2>
           </Reveal>
-          <ScreenshotsGallery images={galleryImages} />
+          <ScreenshotsGallery
+            images={galleryImages}
+            alts={GALLERY_IMAGE_ALTS[locale][project.slug] /* // SEO FIX */}
+          />
         </section>
       )}
 

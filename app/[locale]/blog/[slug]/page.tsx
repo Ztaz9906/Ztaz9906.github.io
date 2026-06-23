@@ -12,9 +12,12 @@ import { getTranslations } from "next-intl/server";
 
 import { getAllPostSlugs, getAllPosts, getPostBySlug, type Locale } from "@/lib/blog";
 import { blogDiagrams } from "@/components/diagrams/blog";
+import { BlogPostingSchema, BreadcrumbSchema } from "@/components/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { SubpageHeader } from "@/components/subpage-header";
 import { ViewCounterSlot } from "@/components/ViewCounterSlot";
+
+const BASE_URL = "https://ztaz9906-github-io.vercel.app";
 
 export function generateStaticParams() {
   const locales = ["en", "es"] as const
@@ -36,6 +39,7 @@ export async function generateMetadata({
     title: post.title,
     description: post.excerpt,
     alternates: {
+      canonical: `https://ztaz9906-github-io.vercel.app/${locale}/blog/${slug}`, // SEO FIX
       languages: {
         en: `/en/blog/${slug}`,
         es: `/es/blog/${slug}`,
@@ -66,7 +70,13 @@ const mdxOptions = {
 };
 
 const mdxComponents = {
-  a: (props: any) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  h1: ({ children, ...props }: any) => <h2 {...props}>{children}</h2>, // SEO FIX - h1 → h2 in MDX
+  a: ({ href, children, ...props }: any) => // SEO FIX - external links only
+    href?.startsWith("http") ? ( // SEO FIX - external links only
+      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a> // SEO FIX - external links only
+    ) : ( // SEO FIX - external links only
+      <a href={href} {...props}>{children}</a> // SEO FIX - external links only
+    ), // SEO FIX - external links only
   h2: (props: any) => {
     const isReferences =
       props.children === "References" || props.children === "Referencias";
@@ -102,6 +112,21 @@ async function BlogPostContent({
 
   return (
     <div className="min-h-screen bg-background">
+      <BlogPostingSchema
+        title={post.title}
+        description={post.excerpt}
+        datePublished={post.dateISO}
+        dateModified={post.dateISO}
+        slug={post.slug}
+        locale={locale}
+        coverImage={post.coverImage ? `${BASE_URL}${post.coverImage}` : undefined}
+      />
+      <BreadcrumbSchema
+        items={[
+          { name: "Blog", url: `${BASE_URL}/${locale}/blog` },
+          { name: post.title, url: `${BASE_URL}/${locale}/blog/${post.slug}` },
+        ]}
+      />
       <SubpageHeader
         locale={locale}
         backHref={`/${locale}/blog`}

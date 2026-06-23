@@ -41,7 +41,7 @@ export async function About() {
                 fill
                 sizes="256px"
                 className="object-cover"
-                priority
+                /* SEO FIX - removed priority (not LCP) */
               />
             </div>
           </div>

@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getMessages } from "next-intl/server"; // SEO FIX
 import { notFound } from "next/navigation";
+import { PersonSchema, WebSiteSchema } from "@/components/json-ld";
 import { TerminalToggleButton } from "@/components/terminal/TerminalToggleButton";
 import "../globals.css";
 
@@ -19,22 +20,26 @@ const geistMono = localFont({
   display: "swap",
 });
 
+const BASE_URL = "https://ztaz9906-github-io.vercel.app"; // SEO FIX
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "hero" });
+  const pageDescription = locale === "es" ? "Software Engineer especializado en arquitecturas DDD, CQRS y Event-Driven con Next.js, TypeScript y Python." : "Software Engineer specialized in DDD, CQRS, and Event-Driven architectures with Next.js, TypeScript, and Python."; // SEO FIX
+  const twitterDescription = locale === "es" ? "Software Engineer especializado en arquitecturas DDD, CQRS y Event-Driven." : "Software Engineer specialized in DDD, CQRS, and Event-Driven architectures."; // SEO FIX
 
   return {
+    metadataBase: new URL(BASE_URL), // SEO FIX
     title: {
-      default: "Enrique Ferreiro — Software Engineer",
+      default: "Enrique Ferreiro | Software Engineer",
       template: "%s | Enrique Ferreiro",
     },
-    description: t("tagline"),
+    description: pageDescription, // SEO FIX
     alternates: {
-      canonical: `https://enriqueferreiro.dev/${locale}`,
+      canonical: `${BASE_URL}/${locale}`, // SEO FIX
       languages: {
         en: "/en",
         es: "/es",
@@ -48,9 +53,18 @@ export async function generateMetadata({
     },
     openGraph: {
       title: "Enrique Ferreiro — Software Engineer",
-      description: t("tagline"),
+      description: pageDescription, // SEO FIX
+      url: BASE_URL, // SEO FIX
+      siteName: "Enrique Ferreiro", // SEO FIX
+      images: [{ url: "/og/home.png", width: 1200, height: 630, alt: "Enrique Ferreiro · Software Engineer" }], // SEO FIX
       type: "website",
-      locale: locale === "es" ? "es_ES" : "en_US",
+      locale: locale, // SEO FIX
+    },
+    twitter: { // SEO FIX
+      card: "summary_large_image", // SEO FIX
+      title: "Enrique Ferreiro · Software Engineer", // SEO FIX
+      description: twitterDescription, // SEO FIX
+      images: ["/og/home.png"], // SEO FIX
     },
   };
 }
@@ -81,6 +95,8 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} bg-background`}
     >
       <body className="font-sans antialiased">
+        <PersonSchema />
+        <WebSiteSchema />
         <NextIntlClientProvider messages={messages}>
           {children}
           <TerminalToggleButton />
