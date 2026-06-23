@@ -67,7 +67,7 @@ export const PROJECTS: Project[] = [
       "/projects/juuz/6.png",
     ],
     featured: true,
-    dateRange: "Sep 2024 â€” Jan 2026",
+    dateRange: "Sep 2024 - Jan 2026",
     hasCaseStudy: true,
   },
   {
@@ -112,7 +112,7 @@ export const PROJECTS: Project[] = [
       "/projects/abalink/9.png",
     ],
     featured: true,
-    dateRange: "Nov 2025 â€” Mar 2026",
+    dateRange: "Nov 2025 - Mar 2026",
     hasCaseStudy: true,
   },
   {
@@ -153,7 +153,7 @@ export const PROJECTS: Project[] = [
       "/projects/charge2go/4.png",
     ],
     featured: true,
-    dateRange: "Jan 2025 â€” Mar 2025",
+    dateRange: "Jan 2025 - Mar 2025",
     hasCaseStudy: true,
   },
   {
@@ -192,7 +192,7 @@ export const PROJECTS: Project[] = [
       "/projects/elchuletazo/3.png",
     ],
     featured: true,
-    dateRange: "Aug 2024 â€” Jan 2025",
+    dateRange: "Aug 2024 - Jan 2025",
     hasCaseStudy: true,
   },
   {
@@ -225,7 +225,7 @@ export const PROJECTS: Project[] = [
     ],
     screenshots: [],
     featured: false,
-    dateRange: "Aug 2023 â€” Dec 2023",
+    dateRange: "Aug 2023 - Dec 2023",
     hasCaseStudy: false,
   },
   {
@@ -258,7 +258,7 @@ export const PROJECTS: Project[] = [
     ],
     screenshots: [],
     featured: false,
-    dateRange: "Jan 2023 â€” May 2023",
+    dateRange: "Jan 2023 - May 2023",
     hasCaseStudy: false,
   },
 ]

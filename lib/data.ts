@@ -48,7 +48,7 @@ export const EXPERIENCE = [
   {
     company: "XABAL SIGA Power Management System",
     location: "UCI, Cuba",
-    period: "Jun 2022 â€” Dec 2022",
+    period: "Jun 2022 - Dec 2022",
     summary:
       "Designed a configuration module for a food management system used by 100+ users.",
     bullets: [
@@ -61,7 +61,7 @@ export const EXPERIENCE = [
   {
     company: "Video Forms",
     location: "Remote",
-    period: "Jan 2023 â€” May 2023",
+    period: "Jan 2023 - May 2023",
     summary:
       "Built a video marketing platform with real-time lead capture and automated email notifications.",
     bullets: [
@@ -74,7 +74,7 @@ export const EXPERIENCE = [
   {
     company: "Orfi Gallery",
     location: "Remote",
-    period: "Aug 2023 â€” Dec 2023",
+    period: "Aug 2023 - Dec 2023",
     summary:
       "Engineered an automated inventory management system with real-time analytics for 1,000+ stock items.",
     bullets: [
@@ -86,7 +86,7 @@ export const EXPERIENCE = [
   {
     company: "El Chuletazo",
     location: "Remote",
-    period: "Aug 2024 â€” Jan 2025",
+    period: "Aug 2024 - Jan 2025",
     summary:
       "Built a full e-commerce platform supporting 1,000+ products and concurrent users with end-to-end checkout.",
     bullets: [
@@ -99,7 +99,7 @@ export const EXPERIENCE = [
   {
     company: "JUUZ Company",
     location: "Remote",
-    period: "Sep 2024 â€” Jan 2026",
+    period: "Sep 2024 - Jan 2026",
     summary:
       "Designed and launched a real-time towing service platform supporting 1,000+ concurrent users with live driver tracking.",
     bullets: [
@@ -112,7 +112,7 @@ export const EXPERIENCE = [
   {
     company: "Charge2Go",
     location: "Remote",
-    period: "Jan 2025 â€” Mar 2025",
+    period: "Jan 2025 - Mar 2025",
     summary:
       "Built a web app for managing EV charging stations supporting 500+ users with real-time reservations.",
     bullets: [
@@ -125,7 +125,7 @@ export const EXPERIENCE = [
   {
     company: "ABALink",
     location: "Remote",
-    period: "Nov 2025 â€” Mar 2026",
+    period: "Nov 2025 - Mar 2026",
     summary:
       "Architected a high-performance enterprise system using DDD and CQRS for scalability and maintainability.",
     bullets: [
