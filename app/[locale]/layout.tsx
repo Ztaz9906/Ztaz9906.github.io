@@ -52,7 +52,7 @@ export async function generateMetadata({
       apple: "/icon.svg",
     },
     openGraph: {
-      title: "Enrique Ferreiro — Software Engineer",
+      title: "Enrique Ferreiro | Software Engineer", // SEO FIX - title separator
       description: pageDescription, // SEO FIX
       url: BASE_URL, // SEO FIX
       siteName: "Enrique Ferreiro", // SEO FIX
@@ -62,7 +62,7 @@ export async function generateMetadata({
     },
     twitter: { // SEO FIX
       card: "summary_large_image", // SEO FIX
-      title: "Enrique Ferreiro · Software Engineer", // SEO FIX
+      title: "Enrique Ferreiro | Software Engineer", // SEO FIX - title separator
       description: twitterDescription, // SEO FIX
       images: ["/og/home.png"], // SEO FIX
     },
