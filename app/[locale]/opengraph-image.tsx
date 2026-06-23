@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -14,9 +16,8 @@ export default async function Image({
   const { locale } = await params;
   const subtitle =
     locale === "es" ? "Ingeniero de software" : "Software Engineer";
-  const portrait = await fetch( // SEO FIX
-    new URL("../../public/portrait.png", import.meta.url), // SEO FIX
-  ).then((r) => r.arrayBuffer()); // SEO FIX
+  const portraitFile = await readFile(join(process.cwd(), "public/portrait.png"));
+  const portrait = new Uint8Array(portraitFile).buffer;
 
   return new ImageResponse(
     (
