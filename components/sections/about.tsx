@@ -1,6 +1,6 @@
 import Image from "next/image"
 import { getTranslations } from "next-intl/server"
-import { Boxes, Layout, Radio, Server } from "lucide-react"
+import { Boxes, Brain, Layout, Radio, Server } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { SectionHeading } from "@/components/section-heading"
@@ -12,6 +12,7 @@ const ICONS = {
   server: Server,
   boxes: Boxes,
   radio: Radio,
+  brain: Brain,
 } as const
 
 const CAPABILITY_TITLE_KEYS: Record<string, string> = {
@@ -19,6 +20,7 @@ const CAPABILITY_TITLE_KEYS: Record<string, string> = {
   Backend: "capabilityBackend",
   Architecture: "capabilityArchitecture",
   Realtime: "capabilityRealtime",
+  "AI / LLM": "capabilityAi",
 }
 
 export async function About() {
@@ -57,7 +59,7 @@ export async function About() {
         </Reveal>
       </div>
 
-      <div className="mt-16 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-16 grid grid-cols-2 gap-4 lg:grid-cols-5">
         {CAPABILITIES.map((cap, i) => {
           const Icon = ICONS[cap.icon]
           return (

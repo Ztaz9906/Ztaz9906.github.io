@@ -11,8 +11,8 @@
     "ariaCloseMenu": "Close menu"
   },
   "hero": {
-    "roleBadge": "Software Engineer",
-    "tagline": "DDD · CQRS · Event-Driven · Next.js · TypeScript · Python",
+    "roleBadge": "Full Stack & AI Engineer",
+    "tagline": "DDD · CQRS · LLM Agents · Next.js · TypeScript · Python",
     "ctaViewProjects": "View Projects",
     "ctaReadBlog": "Read Blog",
     "ctaDownloadCv": "Download CV",
@@ -26,9 +26,9 @@
     "visualCmdStack": "> stack",
     "visualCmdArchitecture": "> architecture",
     "visualCmdStatus": "> status",
-    "visualOutRole": "Enrique Ferreiro | Software Engineer",
-    "visualOutStack": "Next.js · TypeScript · Python",
-    "visualOutArchitecture": "DDD · CQRS · Event-Driven",
+    "visualOutRole": "Enrique Ferreiro | Full Stack & AI Engineer",
+    "visualOutStack": "Next.js · TypeScript · Python · LLM",
+    "visualOutArchitecture": "DDD · CQRS · AI Agents · Event-Driven",
     "visualOutStatus": "Available for new projects",
     "monitorFileName": "hello-world.ts",
     "monitorCommand": "console.log(\"Hello World\")",
@@ -38,11 +38,12 @@
     "title": "Who am I?",
     "portraitAlt": "Portrait of Enrique Ferreiro",
     "intro": "26 years old. Software Engineer.",
-    "description": "Specialized in scalable applications and modern architectures turning complex domains into clean, event-driven systems that perform under real-world load.",
+    "description": "Specialized in scalable applications, modern architectures, and AI-powered systems — turning complex domains into clean, event-driven platforms that perform under real-world load.",
     "capabilityFrontend": "Frontend",
     "capabilityBackend": "Backend",
     "capabilityArchitecture": "Architecture",
-    "capabilityRealtime": "Realtime"
+    "capabilityRealtime": "Realtime",
+    "capabilityAi": "AI / LLM"
   },
   "experience": {
     "title": "Experience",

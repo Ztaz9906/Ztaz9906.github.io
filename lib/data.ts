@@ -2,7 +2,7 @@ import type { Locale } from "@/lib/data/projects";
 
 export const PROFILE = {
   name: "Enrique Ferreiro",
-  role: "Software Engineer",
+  role: "Full Stack & AI Engineer",
 } as const;
 
 export const NAV_LINKS = [
@@ -41,6 +41,11 @@ export const CAPABILITIES = [
     title: "Realtime",
     icon: "radio",
     tags: ["Ably", "SSE", "Mapbox"],
+  },
+  {
+    title: "AI / LLM",
+    icon: "brain",
+    tags: ["OpenAI", "Claude", "Prompt Eval", "Agents"],
   },
 ] as const;
 
@@ -123,6 +128,19 @@ export const EXPERIENCE = [
     tags: ["GraphQL", "DDD", "Dependency Injection"],
   },
   {
+    company: "Nara (Personal Project)",
+    location: "Solo Developer",
+    period: "Aug 2026 - Present",
+    summary:
+      "Built an LLM-powered WhatsApp business platform with a dual-engine architecture: LLM extracts, deterministic engine decides.",
+    bullets: [
+      "Designed a provider-agnostic LLM adapter supporting OpenAI, Claude, and NVIDIA Nemotron with retry budgets and per-attempt timeouts.",
+      "Built a prompt evaluation framework that tests candidate prompts against real production traffic for data-driven iteration.",
+      "Implemented AI agent profiles with versioning, sealed credential management, and a confidence-based field extraction pipeline.",
+    ],
+    tags: ["NestJS", "OpenAI API", "LLM", "PostgreSQL", "Drizzle", "Docker"],
+  },
+  {
     company: "ABALink",
     location: "Remote",
     period: "Nov 2025 - Mar 2026",
@@ -141,7 +159,7 @@ export const EXPERIENCE = [
 export function getProfile(locale: Locale) {
   return {
     name: PROFILE.name,
-    role: locale === "es" ? "Ingeniero de software" : PROFILE.role,
+    role: locale === "es" ? "Full Stack & AI Engineer" : PROFILE.role,
   }
 }
 
@@ -232,6 +250,19 @@ export function getExperience(locale: Locale) {
         tags: ["GraphQL", "DDD", "Dependency Injection"],
       },
       {
+        company: "Nara (Proyecto Personal)",
+        location: "Desarrollador Único",
+        period: "Aug 2026 - Presente",
+        summary:
+          "Construí una plataforma de negocios WhatsApp con LLM y arquitectura de motor dual: el LLM extrae, el motor determinístico decide.",
+        bullets: [
+          "Diseñé un adaptador LLM agnóstico de proveedor compatible con OpenAI, Claude y NVIDIA Nemotron con presupuestos de reintentos y timeouts por intento.",
+          "Construí un framework de evaluación de prompts que prueba prompts candidatos contra tráfico real de producción para iteración basada en datos.",
+          "Implementé perfiles de agentes IA con versionado, gestión sellada de credenciales y un pipeline de extracción de campos basado en confianza.",
+        ],
+        tags: ["NestJS", "OpenAI API", "LLM", "PostgreSQL", "Drizzle", "Docker"],
+      },
+      {
         company: "ABALink",
         location: "Remoto",
         period: "Nov 2025 - Mar 2026",
@@ -306,14 +337,18 @@ export const SKILLS = [
     items: ["PostgreSQL", "Prisma", "TypeORM", "Drizzle ORM"],
   },
   {
+    category: "AI / LLM",
+    items: ["OpenAI API", "Claude API", "Prompt Engineering", "LLM Evaluation", "AI Agents"],
+  },
+  {
     category: "Tools",
-    items: ["Git", "GitHub", "CI/CD", "Jest", "Docker"],
+    items: ["Git", "GitHub", "CI/CD", "Jest", "Docker", "Claude Code"],
   },
 ];
 
 export const STATS = [
   { value: 4, suffix: "+", label: "years experience" },
-  { value: 7, suffix: "+", label: "projects shipped" },
+  { value: 8, suffix: "+", label: "projects shipped" },
   { value: 15, suffix: "+", label: "technologies" },
   { value: 1000, suffix: "+", label: "concurrent users supported" },
 ];

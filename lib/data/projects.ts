@@ -27,6 +27,49 @@ export interface Project {
 
 export const PROJECTS: Project[] = [
   {
+    slug: "nara",
+    name: "Nara",
+    translations: {
+      en: {
+        oneLiner: "LLM-powered WhatsApp business platform",
+        problem:
+          "Businesses needed to extract structured data (names, addresses, product selections) from free-text WhatsApp messages reliably, without hallucinations corrupting downstream operations.",
+        architecture:
+          "Dual-engine architecture: an OpenAI-compatible LLM adapter extracts fields, while a deterministic rules engine validates and acts on them. Provider-agnostic design supports NVIDIA Nemotron, OpenAI, and Claude without changing business logic. Built on NestJS with PostgreSQL/Drizzle, sealed credential management, and multi-tenant isolation.",
+        solution:
+          "AI agent profiles with versioning, a prompt evaluation framework (eval-ai-agent) that tests candidate prompts against real production traffic, retry budgets with per-attempt timeouts, reasoning content parsing for chain-of-thought models, and a field extraction pipeline with confidence-based confirmation flow.",
+        lessonsLearned: [
+          "Evaluation frameworks should be built before the first prompt, not after — evals should drive prompt development the same way tests drive code.",
+          "Separating extraction (LLM) from decision-making (deterministic engine) is essential for reliability in production AI systems.",
+        ],
+      },
+      es: {
+        oneLiner: "Plataforma de negocios WhatsApp con LLM",
+        problem:
+          "Los negocios necesitaban extraer datos estructurados (nombres, direcciones, selección de productos) de mensajes de texto libre en WhatsApp de forma confiable, sin que las alucinaciones corrompieran las operaciones posteriores.",
+        architecture:
+          "Arquitectura de motor dual: un adaptador LLM compatible con OpenAI extrae campos, mientras un motor de reglas determinístico valida y actúa sobre ellos. Diseño agnóstico de proveedor que soporta NVIDIA Nemotron, OpenAI y Claude sin cambiar la lógica de negocio. Construido sobre NestJS con PostgreSQL/Drizzle, gestión sellada de credenciales y aislamiento multi-tenant.",
+        solution:
+          "Perfiles de agentes IA con versionado, un framework de evaluación de prompts (eval-ai-agent) que prueba prompts candidatos contra tráfico real de producción, presupuestos de reintentos con timeouts por intento, parsing de contenido de razonamiento para modelos chain-of-thought, y un pipeline de extracción de campos con flujo de confirmación basado en confianza.",
+        lessonsLearned: [
+          "Los frameworks de evaluación deben construirse antes del primer prompt, no después — los evals deben guiar el desarrollo de prompts igual que los tests guían el código.",
+          "Separar la extracción (LLM) de la toma de decisiones (motor determinístico) es esencial para la confiabilidad en sistemas de IA en producción.",
+        ],
+      },
+    },
+    stack: ["NestJS", "PostgreSQL", "Drizzle", "OpenAI API", "Docker", "GitHub Actions"],
+    metrics: [
+      { label: "Commits (solo developer)", value: "704" },
+      { label: "Test files", value: "500+" },
+      { label: "Source files", value: "974" },
+      { label: "AI provider adapters", value: "3" },
+    ],
+    screenshots: [],
+    featured: true,
+    dateRange: "Aug 2026 - Present",
+    hasCaseStudy: false,
+  },
+  {
     slug: "juuz",
     name: "JUUZ",
     translations: {
